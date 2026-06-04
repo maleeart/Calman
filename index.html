@@ -222,14 +222,15 @@
                 } else {
                     alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub');
                 }
-            } } catch (error) {
-                console.error("REAL ERROR:", error);
-                alert("Error จริงคือ: " + error.message);
-            } finally {
-                btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
-                btn.disabled = false;
+            } catch (error) {
+                    console.error("REAL ERROR:", error);
+                    alert("Error จริงคือ: " + error.message);
+            }        finally {
+                    btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
+                    btn.disabled = false;
             }
         }
+            
 
         function displayHistory(history) {
             const listContainer = document.getElementById('historyList');
