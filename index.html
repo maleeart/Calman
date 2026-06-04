@@ -230,7 +230,11 @@
                 };
                 currentHistory.unshift(newItem);
 
-                const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(currentHistory, null, 2))));
+                const updatedContent = btoa(
+                    new TextEncoder()
+                        .encode(JSON.stringify(currentHistory, null, 2))
+                        .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                );
                 const commitRes = await fetch(ghUrl, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
