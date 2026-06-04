@@ -212,7 +212,13 @@
                 return;
                 }
                 if (fileData.content) {
-                    currentHistory = JSON.parse(atob(fileData.content.replace(/\s/g, '')));
+                    const decoded = decodeURIComponent(
+                    escape(
+                        atob(fileData.content.replace(/\s/g, ''))
+                    )
+                );
+
+                currentHistory = JSON.parse(decoded);
                 }
 
                 const newItem = {
