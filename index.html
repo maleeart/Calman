@@ -178,7 +178,16 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
                 const geminiData = await geminiRes.json();
-                let aiText = geminiData.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+
+                if (!geminiRes.ok || !geminiData.candidates) {
+                    console.error("Gemini Error:", geminiData);
+                    alert("Gemini API Error: " + (geminiData.error?.message || "API Key ใช้ไม่ได้"));
+                return;
+                }
+
+                let aiText = geminiData.candidates[0].content.parts[0].text
+                    .replace(/```json|```/g, '')
+                    .trim();
                 const foodInfo = JSON.parse(aiText);
 
                 const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
