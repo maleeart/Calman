@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Calorie Tracker & TDEE Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 p-4 font-sans text-gray-800">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg">
+        <h1 class="text-2xl font-bold mb-1 text-center text-gray-900">AI Calorie & TDEE 📊</h1>
+        <p class="text-xs text-center text-gray-500 mb-4">ระบบคำนวณพลังงานและการเผาผลาญรายวัน</p>
+
+        <details class="mb-3 bg-blue-50 p-3 rounded-xl border border-blue-200" open>
+            <summary class="text-sm font-semibold cursor-pointer text-blue-800">👤 คำนวณค่า BMR / TDEE ประจำตัว</summary>
+            <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                <div>
+                    <label class="block font-medium text-gray-700 mb-0.5">น้ำหนัก (kg)</label>
+                    <input type="number" step="0.1" id="userWeight" value="64.6" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-0.5">ส่วนสูง (cm)</label>
+                    <input type="number" id="userHeight" value="167" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-0.5">อายุ (ปี)</label>
+                    <input type="number" id="userAge" value="31" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-0.5">กิจกรรมการซ้อม</label>
+                    <select id="userActivity" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
+                        <option value="1.2">นั่งทำงานอยู่กับที่ (ไม่ออกกำลังกาย)</option>
+                        <option value="1.375">ขยับน้อย / เล่นเบาๆ (1-3 วัน/สัปดาห์)</option>
+                        <option value="1.55" selected>แอคทีฟปานกลาง / ซ้อมหนัก (3-5 วัน/สัปดาห์)</option>
+                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปดาห์)</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-medium text-gray-700 mb-0.5">เป้าหมายโปรตีนต่อวัน (g)</label>
+                    <input type="number" id="proteinGoal" value="120" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
+                </div>
+            </div>
+            <div class="mt-3 bg-white p-2.5 rounded-lg border border-blue-100 flex justify-between text-center text-xs">
+                <div>BMR: <span id="bmrValue" class="font-bold text-blue-600">0</span> kcal</div>
+                <div class="border-r border-gray-200"></div>
+                <div>เป้าหมาย TDEE: <span id="tdeeValue" class="font-bold text-purple-600">0</span> kcal</div>
+            </div>
+        </details>
+
+        <details class="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 hidden">
+            <summary class="text-sm font-semibold cursor-pointer text-gray-600">🛠️ 2. ตั้งค่าระบบ Cloud & AI (ทำครั้งแรก)</summary>
+            <div class="space-y-3 mt-3 text-xs">
+                <input type="password" id="geminiKey" placeholder="Gemini API Key" class="w-full p-2 border rounded-lg bg-white">
+                <input type="text" id="ghUser" placeholder="GitHub Username เช่น maleeart" class="w-full p-2 border rounded-lg bg-white">
+                <input type="text" id="ghRepo" placeholder="Repository เช่น Calman" class="w-full p-2 border rounded-lg bg-white">
+                <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-2 border rounded-lg bg-white">
+                <button onclick="saveConfig()" class="w-full bg-gray-800 text-white p-2 rounded-lg font-medium">บันทึกคีย์ระบบลงเครื่อง</button>
+            </div>
+        </details>
+
+        <div class="mb-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+            <label class="block text-xs font-semibold text-gray-700 mb-1">📅 วันที่ต้องการดูข้อมูล</label>
+            <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="displayHistory(globalHistory)">
+            <p class="text-[10px] text-gray-400 mt-1">ระบบจะรวมแคลอรีเฉพาะวันที่เลือก ไม่รวมข้ามวัน</p>
+        </div>
+
+        <div class="mb-3">
+            <textarea id="foodInput" placeholder="วันนี้กินอะไรไปบ้าง... เช่น บะหมี่แห้งไก่กรอบ, ไข่ลวก 2 ฟอง" class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" rows="2"></textarea>
+        </div>
+
+        <button onclick="analyzeAndSave()" id="submitBtn" class="w-full bg-blue-600 text-white p-3 rounded-xl font-semibold hover:bg-blue-700 transition mb-6">
+            วิเคราะห์และอัปเดตลงฐานข้อมูล
+        </button>
+
+        <div class="bg-gray-900 text-white p-5 rounded-2xl mb-6 shadow-inner">
+            <h2 class="text-sm font-bold text-gray-400 mb-3 text-center uppercase tracking-wider">สรุปสถานะพลังงานของวันที่เลือก</h2>
+
+            <div class="flex justify-around text-center mb-4">
+                <div>
+                    <div class="text-[11px] text-gray-400">กินไปแล้ว</div>
+                    <div id="dayCal" class="text-xl font-bold text-orange-400">0 kcal</div>
+                </div>
+                <div class="border-r border-gray-700"></div>
+                <div>
+                    <div class="text-[11px] text-gray-400">โปรตีนที่ได้รับ</div>
+                    <div id="dayProtein" class="text-xl font-bold text-green-400">0 กรัม</div>
+                </div>
+            </div>
+
+            <div class="text-[11px] text-gray-400 mb-1">Calories vs TDEE</div>
+            <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
+                <div id="progressBar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div class="text-[11px] text-gray-400 mb-1">Protein Goal</div>
+            <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
+                <div id="proteinBar" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div id="proteinStatus" class="text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700 mb-2">
+                กำลังคำนวณโปรตีน...
+            </div>
+
+            <div id="tdeeStatus" class="text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700">
+                กำลังคำนวณส่วนต่างพลังงาน...
+            </div>
+        </div>
+
+        <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 mb-6 text-xs">
+            <h3 class="text-sm font-bold text-indigo-900 mb-2">📈 สรุป 7 วันล่าสุด</h3>
+            <div id="weekSummary" class="text-indigo-800">กำลังคำนวณ...</div>
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-gray-900 mb-2">📋 ประวัติอาหารของวันที่เลือก</h3>
+            <div id="historyList" class="space-y-2 max-h-56 overflow-y-auto text-xs">
+                <p class="text-sm text-gray-400 text-center py-4">กำลังดึงข้อมูล...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalTDEE = 2300;
+        let globalHistory = [];
+        let latestFileSha = null;
+
+        window.onload = function() {
+            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken', 'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
+            configKeys.forEach(k => {
+                if (localStorage.getItem(k)) document.getElementById(k).value = localStorage.getItem(k);
+            });
+
+            document.getElementById('selectedDate').value = getTodayDate();
+            calculateTDEE();
+            fetchDataFromGitHub();
+        };
+
+        function getTodayDate() {
+            const d = new Date();
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().slice(0, 10);
+        }
+
+        function utf8ToBase64(str) {
+            return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+        }
+
+        function base64ToUtf8(str) {
+            return new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0)));
+        }
+
+        function saveConfig() {
+            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken', 'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
+            configKeys.forEach(k => localStorage.setItem(k, document.getElementById(k).value.trim()));
+            alert('บันทึกการตั้งค่าระบบเรียบร้อยครับ!');
+            calculateTDEE();
+            fetchDataFromGitHub();
+        }
+
+        function calculateTDEE() {
+            const w = Number(document.getElementById('userWeight').value);
+            const h = Number(document.getElementById('userHeight').value);
+            const a = Number(document.getElementById('userAge').value);
+            const act = Number(document.getElementById('userActivity').value);
+            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
+
+            localStorage.setItem('userWeight', w);
+            localStorage.setItem('userHeight', h);
+            localStorage.setItem('userAge', a);
+            localStorage.setItem('userActivity', act);
+            localStorage.setItem('proteinGoal', proteinGoal);
+
+            const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
+            globalTDEE = Math.round(bmr * act);
+
+            document.getElementById('bmrValue').innerText = Math.round(bmr);
+            document.getElementById('tdeeValue').innerText = globalTDEE;
+            displayHistory(globalHistory);
+        }
+
+        async function fetchDataFromGitHub() {
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            if (!user || !repo) {
+                document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อนเพื่อดึงประวัติ</p>';
+                return;
+            }
+
+            try {
+                const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json?t=${Date.now()}`;
+                const res = await fetch(ghUrl);
+
+                if (!res.ok) {
+                    globalHistory = [];
+                    latestFileSha = null;
+                    document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json หรือคลังไม่ถูกต้อง</p>';
+                    updateDashboardValues(0, 0);
+                    updateWeekSummary([]);
+                    return;
+                }
+
+                const fileData = await res.json();
+                latestFileSha = fileData.sha;
+                globalHistory = JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')));
+                globalHistory = normalizeHistory(globalHistory);
+                displayHistory(globalHistory);
+            } catch (e) {
+                console.error('Fetch GitHub Error:', e);
+                document.getElementById('historyList').innerHTML = '<p class="text-sm text-red-400 text-center py-4">ดึงข้อมูลไม่สำเร็จ</p>';
+            }
+        }
+
+        function normalizeHistory(history) {
+            if (!Array.isArray(history)) return [];
+            return history.map(item => ({
+                id: item.id || Date.now() + Math.random(),
+                date: item.date || getTodayDate(),
+                time: item.time || '-',
+                menu: item.menu || '-',
+                calories: Number(item.calories || 0),
+                protein: Number(item.protein || 0)
+            }));
+        }
+
+        async function analyzeAndSave() {
+            const geminiKey = document.getElementById('geminiKey').value.trim();
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            const token = document.getElementById('ghToken').value.trim();
+            const foodText = document.getElementById('foodInput').value.trim();
+            const btn = document.getElementById('submitBtn');
+
+            if (!geminiKey || !user || !repo || !token || !foodText) {
+                return alert('กรุณากรอกข้อมูลตั้งค่าระบบและชื่ออาหารให้ครบถ้วนก่อนครับ');
+            }
+
+            btn.innerText = 'AI กำลังวิเคราะห์และส่งขึ้นระบบ Cloud... 🚀';
+            btn.disabled = true;
+
+            try {
+                const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์ใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
+
+                const geminiRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-goog-api-key': geminiKey
+                    },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const geminiData = await geminiRes.json();
+                console.log('Gemini response:', geminiData);
+
+                if (!geminiRes.ok || !geminiData.candidates) {
+                    console.error('Gemini Error:', geminiData);
+                    alert('Gemini API Error: ' + (geminiData.error?.message || 'API Key ใช้ไม่ได้'));
+                    return;
+                }
+
+                let aiText = geminiData.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                const foodInfo = JSON.parse(aiText);
+
+                const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
+                const fileRes = await fetch(ghUrl, { headers: { 'Authorization': `token ${token}` } });
+                const fileData = fileRes.ok ? await fileRes.json() : { sha: null, content: '' };
+
+                let currentHistory = [];
+                if (fileData.content) {
+                    currentHistory = JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')));
+                }
+                currentHistory = normalizeHistory(currentHistory);
+
+                const newItem = {
+                    id: Date.now(),
+                    date: document.getElementById('selectedDate').value || getTodayDate(),
+                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                    menu: foodText,
+                    calories: Number(foodInfo.total_calories || 0),
+                    protein: Number(foodInfo.total_protein || 0)
+                };
+
+                currentHistory.unshift(newItem);
+
+                const updatedContent = utf8ToBase64(JSON.stringify(currentHistory, null, 2));
+                const commitRes = await fetch(ghUrl, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `🍱 เพิ่มบันทึกอาหาร: ${foodText}`,
+                        content: updatedContent,
+                        sha: fileData.sha
+                    })
+                });
+
+                if (commitRes.ok) {
+                    const commitData = await commitRes.json();
+                    latestFileSha = commitData.content.sha;
+                    globalHistory = currentHistory;
+                    document.getElementById('foodInput').value = '';
+                    displayHistory(globalHistory);
+                    alert('บันทึกสำเร็จ!');
+                } else {
+                    const err = await commitRes.json().catch(() => ({}));
+                    console.error('GitHub Commit Error:', err);
+                    alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub: ' + (err.message || commitRes.status));
+                }
+            } catch (error) {
+                console.error('REAL ERROR:', error);
+                alert('Error จริงคือ: ' + error.message);
+            } finally {
+                btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteFoodItem(id) {
+            if (!confirm('ลบรายการอาหารนี้ใช่ไหมครับ?')) return;
+
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            const token = document.getElementById('ghToken').value.trim();
+
+            if (!user || !repo || !token) return alert('กรุณาตั้งค่า GitHub ให้ครบก่อนครับ');
+
+            try {
+                const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
+                const fileRes = await fetch(ghUrl, { headers: { 'Authorization': `token ${token}` } });
+                if (!fileRes.ok) return alert('ดึงไฟล์จาก GitHub ไม่สำเร็จ');
+
+                const fileData = await fileRes.json();
+                let currentHistory = JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')));
+                currentHistory = normalizeHistory(currentHistory).filter(item => String(item.id) !== String(id));
+
+                const updatedContent = utf8ToBase64(JSON.stringify(currentHistory, null, 2));
+                const commitRes = await fetch(ghUrl, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `🗑️ ลบรายการอาหาร`,
+                        content: updatedContent,
+                        sha: fileData.sha
+                    })
+                });
+
+                if (commitRes.ok) {
+                    globalHistory = currentHistory;
+                    displayHistory(globalHistory);
+                    alert('ลบสำเร็จ!');
+                } else {
+                    const err = await commitRes.json().catch(() => ({}));
+                    console.error('Delete Error:', err);
+                    alert('ลบไม่สำเร็จ: ' + (err.message || commitRes.status));
+                }
+            } catch (error) {
+                console.error('Delete REAL ERROR:', error);
+                alert('Error ตอนลบ: ' + error.message);
+            }
+        }
+
+        function displayHistory(history) {
+            const listContainer = document.getElementById('historyList');
+            const selectedDate = document.getElementById('selectedDate').value || getTodayDate();
+            const safeHistory = normalizeHistory(history);
+            const dayItems = safeHistory.filter(item => item.date === selectedDate);
+
+            let totalCalToday = 0;
+            let totalProteinToday = 0;
+
+            if (dayItems.length === 0) {
+                listContainer.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีประวัติอาหารในวันที่เลือก</p>';
+                updateDashboardValues(0, 0);
+                updateWeekSummary(safeHistory);
+                return;
+            }
+
+            let html = '';
+            dayItems.forEach(item => {
+                totalCalToday += item.calories;
+                totalProteinToday += item.protein;
+
+                html += `
+                    <div class="flex justify-between items-center gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
+                        <div class="max-w-[62%]">
+                            <p class="font-medium text-gray-900 truncate">${escapeHtml(item.menu)}</p>
+                            <span class="text-[9px] text-gray-400">📅 ${item.date} · ⏱️ ${item.time}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-orange-600">+${item.calories} kcal</p>
+                            <p class="text-[10px] font-semibold text-green-600">+${item.protein} g</p>
+                        </div>
+                        <button onclick="deleteFoodItem('${item.id}')" class="text-red-500 text-lg px-1" title="ลบรายการ">×</button>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+            updateDashboardValues(totalCalToday, totalProteinToday);
+            updateWeekSummary(safeHistory);
+        }
+
+        function updateDashboardValues(totalCal, totalProtein) {
+            document.getElementById('dayCal').innerText = `${totalCal} kcal`;
+            document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
+
+            let percent = (totalCal / globalTDEE) * 100;
+            if (percent > 100) percent = 100;
+            if (!isFinite(percent)) percent = 0;
+
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${percent}%`;
+
+            const statusBox = document.getElementById('tdeeStatus');
+            const diff = globalTDEE - totalCal;
+
+            if (diff > 500) {
+                progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
+                statusBox.innerHTML = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
+                statusBox.className = 'text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900';
+            } else if (diff >= 0 && diff <= 500) {
+                progressBar.className = 'bg-green-500 h-full transition-all duration-500';
+                statusBox.innerHTML = `🟢 ช่วง Calorie Deficit กำลังดี ต่ำกว่า TDEE อยู่ <span class="font-bold text-green-400">${diff} kcal</span>`;
+                statusBox.className = 'text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900';
+            } else {
+                progressBar.className = 'bg-orange-500 h-full transition-all duration-500';
+                statusBox.innerHTML = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
+                statusBox.className = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
+            }
+
+            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
+            const proteinBar = document.getElementById('proteinBar');
+            const proteinStatus = document.getElementById('proteinStatus');
+            let proteinPercent = proteinGoal ? (totalProtein / proteinGoal) * 100 : 0;
+            if (proteinPercent > 100) proteinPercent = 100;
+            if (!isFinite(proteinPercent)) proteinPercent = 0;
+            proteinBar.style.width = `${proteinPercent}%`;
+
+            const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
+            if (proteinLeft > 0) {
+                proteinStatus.innerHTML = `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span> จากเป้าหมาย ${proteinGoal} g`;
+            } else {
+                proteinStatus.innerHTML = `💪 โปรตีนถึงเป้าหมายแล้ว (${totalProtein}/${proteinGoal} g)`;
+            }
+        }
+
+        function updateWeekSummary(history) {
+            const box = document.getElementById('weekSummary');
+            const safeHistory = normalizeHistory(history);
+            const dates = [];
+            const today = new Date(getTodayDate());
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+                dates.push(d.toISOString().slice(0, 10));
+            }
+
+            const totals = dates.map(date => {
+                const items = safeHistory.filter(item => item.date === date);
+                return {
+                    date,
+                    calories: items.reduce((sum, item) => sum + Number(item.calories || 0), 0),
+                    protein: items.reduce((sum, item) => sum + Number(item.protein || 0), 0)
+                };
+            });
+
+            const daysWithData = totals.filter(d => d.calories > 0 || d.protein > 0);
+            const avgCal = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length) : 0;
+            const avgProtein = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein, 0) / daysWithData.length) : 0;
+            const overTdeeDays = totals.filter(d => d.calories > globalTDEE).length;
+            const underTdeeDays = totals.filter(d => d.calories > 0 && d.calories <= globalTDEE).length;
+
+            const dayRows = totals.map(d => {
+                const dateObj = new Date(d.date);
+                const label = dateObj.toLocaleDateString('th-TH', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short'
+                });
+                const hasData = d.calories > 0 || d.protein > 0;
+                const status = !hasData
+                    ? '<span class="text-gray-400">ยังไม่มีข้อมูล</span>'
+                    : d.calories > globalTDEE
+                        ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>'
+                        : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
+
+                return `
+                    <div class="flex items-center justify-between gap-2 py-1.5 border-b border-indigo-100 last:border-b-0">
+                        <div class="w-[34%] font-medium text-indigo-950">${label}</div>
+                        <div class="w-[30%] text-right">
+                            <span class="font-bold text-orange-600">${d.calories}</span>
+                            <span class="text-[10px] text-indigo-500">kcal</span>
+                        </div>
+                        <div class="w-[22%] text-right">
+                            <span class="font-bold text-green-700">${d.protein}</span>
+                            <span class="text-[10px] text-indigo-500">g</span>
+                        </div>
+                        <div class="w-[14%] text-right text-[10px]">${status}</div>
+                    </div>
+                `;
+            }).join('');
+
+            box.innerHTML = `
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
+                        <div class="text-[10px] text-indigo-400">เฉลี่ยพลังงาน</div>
+                        <div class="text-base font-bold text-orange-600">${avgCal}</div>
+                        <div class="text-[10px] text-indigo-500">kcal/วัน</div>
+                    </div>
+                    <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
+                        <div class="text-[10px] text-indigo-400">เฉลี่ยโปรตีน</div>
+                        <div class="text-base font-bold text-green-700">${avgProtein}</div>
+                        <div class="text-[10px] text-indigo-500">g/วัน</div>
+                    </div>
+                    <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
+                        <div class="text-[10px] text-indigo-400">เกิน TDEE</div>
+                        <div class="text-base font-bold text-indigo-800">${overTdeeDays}</div>
+                        <div class="text-[10px] text-indigo-500">วัน / 7 วัน</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between bg-white rounded-xl border border-indigo-100 px-3 py-2 mb-2">
+                    <div class="text-[10px] text-indigo-500 leading-relaxed">
+                        มีข้อมูล <span class="font-bold text-indigo-800">${daysWithData.length}</span> วัน ·
+                        ไม่เกิน TDEE <span class="font-bold text-green-700">${underTdeeDays}</span> วัน ·
+                        เกิน TDEE <span class="font-bold text-orange-600">${overTdeeDays}</span> วัน
+                    </div>
+                    <button id="weekToggleBtn" onclick="toggleWeekDetails()" class="ml-2 shrink-0 bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">
+                        ดูรายละเอียด
+                    </button>
+                </div>
+
+                <div id="weekDetails" class="hidden bg-white rounded-xl border border-indigo-100 overflow-hidden">
+                    <div class="grid grid-cols-4 gap-2 bg-indigo-100 px-2 py-1.5 text-[10px] font-semibold text-indigo-700">
+                        <div>วัน</div>
+                        <div class="text-right">kcal</div>
+                        <div class="text-right">protein</div>
+                        <div class="text-right">สถานะ</div>
+                    </div>
+                    <div class="px-2">
+                        ${dayRows}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleWeekDetails() {
+            const details = document.getElementById('weekDetails');
+            const btn = document.getElementById('weekToggleBtn');
+            if (!details || !btn) return;
+
+            const isHidden = details.classList.contains('hidden');
+            if (isHidden) {
+                details.classList.remove('hidden');
+                btn.innerText = 'ซ่อนรายละเอียด';
+            } else {
+                details.classList.add('hidden');
+                btn.innerText = 'ดูรายละเอียด';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
