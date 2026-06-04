@@ -46,10 +46,10 @@
         <details class="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
             <summary class="text-sm font-semibold cursor-pointer text-gray-600">🛠️ 2. ตั้งค่าระบบ Cloud & AI (ทำครั้งแรก)</summary>
             <div class="space-y-3 mt-3 text-xs">
-                <input type="password" id="geminiKey" placeholder="AQ.Ab8RN6KtvsRbgbGiAEWyLxy4y_d1H9eT9lQ3tWRTFaDqKOSDzg" class="w-full p-2 border rounded-lg bg-white">
+                <input type="password" id="geminiKey" placeholder="gemini_API" class="w-full p-2 border rounded-lg bg-white">
                 <input type="text" id="ghUser" placeholder="maleeart" class="w-full p-2 border rounded-lg bg-white">
                 <input type="text" id="ghRepo" placeholder="Calman" class="w-full p-2 border rounded-lg bg-white">
-                <input type="password" id="ghToken" placeholder="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" class="w-full p-2 border rounded-lg bg-white">
+                <input type="password" id="ghToken" placeholder="github_Token" class="w-full p-2 border rounded-lg bg-white">
                 <button onclick="saveConfig()" class="w-full bg-gray-800 text-white p-2 rounded-lg font-medium">บันทึกคีย์ระบบลงเครื่อง</button>
             </div>
         </details>
@@ -186,6 +186,11 @@
                 const fileData = await fileRes.ok ? await fileRes.json() : { sha: null, content: "" };
                 
                 let currentHistory = [];
+                if (!geminiData.candidates) {
+                    console.error("Gemini response:", geminiData);
+                    alert("Gemini Error: " + JSON.stringify(geminiData.error || geminiData));
+                return;
+                }
                 if (fileData.content) {
                     currentHistory = JSON.parse(atob(fileData.content.replace(/\s/g, '')));
                 }
@@ -217,9 +222,9 @@
                 } else {
                     alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub');
                 }
-            } catch (error) {
-                alert('ระบบขัดข้องกรุณาลองใหม่อีกครั้ง');
-                console.error(error);
+            } } catch (error) {
+                console.error("REAL ERROR:", error);
+                alert("Error จริงคือ: " + error.message);
             } finally {
                 btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
                 btn.disabled = false;
