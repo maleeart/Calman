@@ -78,7 +78,7 @@
             </div>
 
             <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
-                <div id="progressBar" class="bg-gradient-to-r from-orange-400 to-red-500 h-full transition-all duration-500" style="width: 0%"></div>
+                <div id="progressBar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
             </div>
             
             <div id="tdeeStatus" class="text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700">
@@ -95,7 +95,6 @@
     </div>
 
     <script>
-        // โหลดข้อมูลเก่าทั้งหมดเมื่อเข้าเว็บ
         window.onload = function() {
             const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken', 'userWeight', 'userHeight', 'userAge', 'userActivity'];
             configKeys.forEach(k => {
@@ -113,7 +112,6 @@
             fetchDataFromGitHub();
         }
 
-        // สูตรคำนวณ BMR & TDEE อัตโนมัติในเว็บ
         let globalTDEE = 2300; 
         function calculateTDEE() {
             const w = Number(document.getElementById('userWeight').value);
@@ -121,31 +119,35 @@
             const a = Number(document.getElementById('userAge').value);
             const act = Number(document.getElementById('userActivity').value);
 
-            // บันทึกสรีระผู้ใช้ลงเครื่อง
             localStorage.setItem('userWeight', w);
             localStorage.setItem('userHeight', h);
             localStorage.setItem('userAge', a);
             localStorage.setItem('userActivity', act);
 
-            // คำนวณสูตรผู้ชาย
             const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
             globalTDEE = Math.round(bmr * act);
 
             document.getElementById('bmrValue').innerText = Math.round(bmr);
             document.getElementById('tdeeValue').innerText = globalTDEE;
             
-            // อัปเดตการวิเคราะห์ผลหน้าแดชบอร์ดใหม่ทุกครั้งที่ค่าสรีระเปลี่ยน
-            updateDashboardValues(0, 0); 
+            fetchDataFromGitHub(); // ดึงข้อมูลใหม่เพื่อให้อัปเดตสถานะกับ TDEE ใหม่ถูกชัวร์
         }
 
         async function fetchDataFromGitHub() {
             const user = document.getElementById('ghUser').value;
             const repo = document.getElementById('ghRepo').value;
-            if (!user || !repo) return;
+            if (!user || !repo) {
+                document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อนเพื่อดึงประวัติ</p>';
+                return;
+            }
 
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${user}/${repo}/main/data.json?t=${Date.now()}`);
-                if (!res.ok) return;
+                if (!res.ok) {
+                    document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json หรือคลังไม่ถูกต้อง</p>';
+                    updateDashboardValues(0, 0);
+                    return;
+                }
                 const history = await res.json();
                 displayHistory(history);
             } catch (e) {
@@ -211,6 +213,7 @@
                 if(commitRes.ok) {
                     document.getElementById('foodInput').value = '';
                     displayHistory(currentHistory);
+                    alert('บันทึกสำเร็จ!');
                 } else {
                     alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub');
                 }
@@ -257,12 +260,11 @@
             updateDashboardValues(totalCalToday, totalProteinToday);
         }
 
-        // ฟังก์ชันสำคัญ: คำนวณความต่างกับค่า TDEE และแปรผลเป็น 3 ช่วงสี
+        // ฟังก์ชันคำนวณความต่างกับค่า TDEE และแปรผลเป็น 3 ช่วงสี (น้ำเงิน / เขียว / ส้ม)
         function updateDashboardValues(totalCal, totalProtein) {
             document.getElementById('dayCal').innerText = `${totalCal} kcal`;
             document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
 
-            // คำนวณเปอร์เซ็นต์ของ Progress Bar
             let percent = (totalCal / globalTDEE) * 100;
             if(percent > 100) percent = 100; 
             
@@ -270,18 +272,15 @@
             progressBar.style.width = `${percent}%`;
 
             const statusBox = document.getElementById('tdeeStatus');
-            const diff = globalTDEE - totalCal; // ค่าส่วนต่าง (TDEE - ที่กินไป)
+            const diff = globalTDEE - totalCal; 
 
             if (diff > 500) {
-                // 1. 🔵 น้อยกว่า TDEE มากๆ (เกิน 500 แคล) = ภาวะอดอาหาร
-                progressBar.className = "bg-blue-500 h-full transition-all duration-500"; // เปลี่ยนหลอดเป็นสีน้ำเงิน
-                statusBox.innerHTML = `🔵 ภาวะอดอาหาร! วันนี้คุณกินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span> (เสี่ยงกล้ามเนื้อสลายและระบบเผาผลาญพัง)`;
+                progressBar.className = "bg-blue-500 h-full transition-all duration-500"; 
+                statusBox.innerHTML = `🔵 ภาวะอดอาหาร! วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span> (เสี่ยงกล้ามเนื้อสลายและระบบเผาผลาญพัง)`;
                 statusBox.className = "text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900";
             
             } else if (diff >= 0 && diff <= 500) {
-                // 2. 🟢 ช่วงเกณฑ์ Calorie Deficit = กำลังดีสำหรับการลดไขมัน
-                progressBar.className = "bg-green-500 h-full transition-all duration-500"; // เปลี่ยนหลอดเป็นสีเขียว
-                
+                progressBar.className = "bg-green-500 h-full transition-all duration-500"; 
                 if (diff === 0) {
                     statusBox.innerHTML = `🟢 วันนี้กินพลังงานเท่ากับ TDEE พอดีเป๊ะ (น้ำหนักจะคงที่ทรงตัวครับ)`;
                 } else {
@@ -290,35 +289,9 @@
                 statusBox.className = "text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900";
             
             } else {
-                // 3. 🟠 เกิน TDEE = พลังงานส่วนเกินเริ่มสะสม
-                progressBar.className = "bg-orange-500 h-full transition-all duration-500"; // เปลี่ยนหลอดเป็นสีส้ม
+                progressBar.className = "bg-orange-500 h-full transition-all duration-500"; 
                 statusBox.innerHTML = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span> (พลังงานส่วนเกินจะถูกนำไปสะสมเป็นไขมันใหม่)`;
                 statusBox.className = "text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900";
-            }
-        }
-        // ฟังก์ชันสำคัญ: คำนวณความต่างกับค่า TDEE แล้วสะท้อนไปที่หน้าจอ
-        function updateDashboardValues(totalCal, totalProtein) {
-            document.getElementById('dayCal').innerText = `${totalCal} kcal`;
-            document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
-
-            // คำนวณเปอร์เซ็นต์ของ Progress Bar
-            let percent = (totalCal / globalTDEE) * 100;
-            if(percent > 100) percent = 100; // ล็อกแถบไม่ให้ล้นหน้าจอ
-            document.getElementById('progressBar').style.width = `${percent}%`;
-
-            // แปลผลลัพธ์ส่วนต่างพลังงานคู่กับหลักการลดไขมัน
-            const statusBox = document.getElementById('tdeeStatus');
-            const diff = globalTDEE - totalCal;
-
-            if (diff > 0) {
-                statusBox.innerHTML = `🟢 วันนี้กินต่ำกว่า TDEE อยู่ <span class="text-orange-400 font-bold">${diff} kcal</span> (อยู่ในโซนดึงไขมันสะสมมาใช้!)`;
-                statusBox.className = "text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700";
-            } else if (diff === 0) {
-                statusBox.innerHTML = `🟡 วันนี้กินพลังงานเท่ากับ TDEE พอดีเป๊ะ (น้ำหนักจะคงที่ทรงตัวครับ)`;
-                statusBox.className = "text-xs text-center font-medium text-yellow-200 bg-gray-800 p-2 rounded-xl border border-yellow-700";
-            } else {
-                statusBox.innerHTML = `🔴 วันนี้กินเกิน TDEE ไปแล้ว <span class="text-red-400 font-bold">${Math.abs(diff)} kcal</span> (พลังงานส่วนเกินจะเริ่มถูกสะสมเป็นไขมัน)`;
-                statusBox.className = "text-xs text-center font-medium text-red-200 bg-red-950 p-2 rounded-xl border border-red-900";
             }
         }
     </script>
