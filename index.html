@@ -224,101 +224,106 @@
         }
 
         async function analyzeAndSave() {
-            const geminiKey = document.getElementById('geminiKey').value.trim();
-            const user = document.getElementById('ghUser').value.trim();
-            const repo = document.getElementById('ghRepo').value.trim();
-            const token = document.getElementById('ghToken').value.trim();
-            const foodText = document.getElementById('foodInput').value.trim();
-            const btn = document.getElementById('submitBtn');
+    const geminiKey = document.getElementById('geminiKey').value.trim();
+    const user = document.getElementById('ghUser').value.trim();
+    const repo = document.getElementById('ghRepo').value.trim();
+    const token = document.getElementById('ghToken').value.trim();
+    const foodText = document.getElementById('foodInput').value.trim();
+    const btn = document.getElementById('submitBtn');
 
-            if (!geminiKey || !user || !repo || !token || !foodText) {
-                return alert('กรุณากรอกข้อมูลตั้งค่าระบบและชื่ออาหารให้ครบถ้วนก่อนครับ');
-            }
+    if (!geminiKey || !user || !repo || !token || !foodText) {
+        return alert('กรุณากรอกข้อมูลตั้งค่าระบบและชื่ออาหารให้ครบถ้วนก่อนครับ');
+    }
 
-            btn.innerText = 'AI กำลังวิเคราะห์และส่งขึ้นระบบ Cloud... 🚀';
-            btn.disabled = true;
+    // 🔒 1. ล็อกปุ่มกดทันที และเปลี่ยนข้อความ เพื่อป้องกันผู้ใช้กดเบิ้ลซ้ำซ้อน
+    btn.innerText = 'AI กำลังวิเคราะห์และส่งขึ้นระบบ Cloud... 🚀';
+    btn.disabled = true;
 
-            try {
-                const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์ใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
+    try {
+        const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์ใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-                const geminiRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-goog-api-key': geminiKey
-                    },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                // 2. ตรวจ rate limit แยกออกมา
-                if (geminiRes.status === 429) {
-                  alert('⚠️ Gemini ติด Rate Limit กรุณารอ 1 นาทีแล้วลองใหม่');
-                  return;
-                }
+        // 🚀 2. อัปเกรดเป็น Gemini 2.0 Flash (ฉลาดขึ้น อึดขึ้น และตอบกลับเร็วขึ้น)
+        const geminiRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': geminiKey
+            },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
 
-                const geminiData = await geminiRes.json();
-                console.log('Gemini response:', geminiData);
-
-                if (!geminiRes.ok || !geminiData.candidates) {
-                    console.error('Gemini Error:', geminiData);
-                    alert('Gemini API Error: ' + (geminiData.error?.message || 'API Key ใช้ไม่ได้'));
-                    return;
-                }
-
-                let aiText = geminiData.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                const foodInfo = JSON.parse(aiText);
-
-                const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
-                const fileRes = await fetch(ghUrl, { headers: { 'Authorization': `token ${token}` } });
-                const fileData = fileRes.ok ? await fileRes.json() : { sha: null, content: '' };
-
-                let currentHistory = [];
-                if (fileData.content) {
-                    currentHistory = JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')));
-                }
-                currentHistory = normalizeHistory(currentHistory);
-
-                const newItem = {
-                    id: Date.now(),
-                    date: document.getElementById('selectedDate').value || getTodayDate(),
-                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                    menu: foodText,
-                    calories: Number(foodInfo.total_calories || 0),
-                    protein: Number(foodInfo.total_protein || 0)
-                };
-
-                currentHistory.unshift(newItem);
-
-                const updatedContent = utf8ToBase64(JSON.stringify(currentHistory, null, 2));
-                const commitRes = await fetch(ghUrl, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: `🍱 เพิ่มบันทึกอาหาร: ${foodText}`,
-                        content: updatedContent,
-                        sha: fileData.sha
-                    })
-                });
-
-                if (commitRes.ok) {
-                    const commitData = await commitRes.json();
-                    latestFileSha = commitData.content.sha;
-                    globalHistory = currentHistory;
-                    document.getElementById('foodInput').value = '';
-                    displayHistory(globalHistory);
-                    alert('บันทึกสำเร็จ!');
-                } else {
-                    const err = await commitRes.json().catch(() => ({}));
-                    console.error('GitHub Commit Error:', err);
-                    alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub: ' + (err.message || commitRes.status));
-                }
-            } catch (error) {
-                console.error('REAL ERROR:', error);
-                alert('Error จริงคือ: ' + error.message);
-            } finally {
-                btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
-                btn.disabled = false;
-            }
+        // ⚠️ 3. ดักจับสถานะ Rate Limit (Error 429) ทันทีหลังยิง API
+        if (geminiRes.status === 429) {
+            alert('⚠️ ตอนนี้ระบบติด Rate Limit (คนใช้งาน Gemini หนาแน่น) กรุณารอ 1 นาทีแล้วลองใหม่อีกครั้งนะครับ');
+            return; // สั่งหยุดการทำงานทันที ไม่ให้โค้ดไหลไปทำส่วน GitHub ต่อ
         }
+
+        const geminiData = await geminiRes.json();
+        console.log('Gemini response:', geminiData);
+
+        if (!geminiRes.ok || !geminiData.candidates) {
+            console.error('Gemini Error:', geminiData);
+            alert('Gemini API Error: ' + (geminiData.error?.message || 'API Key ใช้ไม่ได้'));
+            return;
+        }
+
+        let aiText = geminiData.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+        const foodInfo = JSON.parse(aiText);
+
+        // 🌐 4. ดึงข้อมูลล่าสุดจาก GitHub ก่อนบันทึก เพื่อป้องกันปัญหาข้อมูลสูญหาย (Data Conflict)
+        const ghUrl = `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
+        const fileRes = await fetch(ghUrl, { headers: { 'Authorization': `token ${token}` } });
+        const fileData = fileRes.ok ? await fileRes.json() : { sha: null, content: '' };
+
+        let currentHistory = [];
+        if (fileData.content) {
+            currentHistory = JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')));
+        }
+        currentHistory = normalizeHistory(currentHistory);
+
+        const newItem = {
+            id: Date.now(),
+            date: document.getElementById('selectedDate').value || getTodayDate(),
+            time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+            menu: foodText,
+            calories: Number(foodInfo.total_calories || 0),
+            protein: Number(foodInfo.total_protein || 0)
+        };
+
+        currentHistory.unshift(newItem);
+
+        const updatedContent = utf8ToBase64(JSON.stringify(currentHistory, null, 2));
+        const commitRes = await fetch(ghUrl, {
+            method: 'PUT',
+            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: `🍱 เพิ่มบันทึกอาหาร: ${foodText}`,
+                content: updatedContent,
+                sha: fileData.sha
+            })
+        });
+
+        if (commitRes.ok) {
+            const commitData = await commitRes.json();
+            latestFileSha = commitData.content.sha;
+            globalHistory = currentHistory;
+            document.getElementById('foodInput').value = '';
+            displayHistory(globalHistory);
+            alert('บันทึกสำเร็จ!');
+        } else {
+            const err = await commitRes.json().catch(() => ({}));
+            console.error('GitHub Commit Error:', err);
+            alert('เกิดข้อผิดพลาดในการอัปเดตไฟล์บน GitHub: ' + (err.message || commitRes.status));
+        }
+    } catch (error) {
+        console.error('REAL ERROR:', error);
+        alert('Error จริงคือ: ' + error.message);
+    } finally {
+        // 🔓 5. ปลดล็อกปุ่มกดให้กลับมาใช้งานได้ปกติ เมื่อทำงานทุกขั้นตอนเสร็จสิ้น (ไม่ว่าจะสำเร็จหรือพัง)
+        btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
+        btn.disabled = false;
+    }
+}
 
         async function deleteFoodItem(id) {
             if (!confirm('ลบรายการอาหารนี้ใช่ไหมครับ?')) return;
