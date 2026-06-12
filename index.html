@@ -241,7 +241,7 @@
             try {
                 const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์ใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-                const geminiRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+                const geminiRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -249,6 +249,11 @@
                     },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+                // 2. ตรวจ rate limit แยกออกมา
+                if (geminiRes.status === 429) {
+                  alert('⚠️ Gemini ติด Rate Limit กรุณารอ 1 นาทีแล้วลองใหม่');
+                  return;
+                }
 
                 const geminiData = await geminiRes.json();
                 console.log('Gemini response:', geminiData);
