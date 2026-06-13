@@ -34,7 +34,7 @@
                         <option value="1.2">นั่งทำงานอยู่กับที่ (ไม่ออกกำลังกาย)</option>
                         <option value="1.375">ขยับน้อย / เล่นเบาๆ (1-3 วัน/สัปดาห์)</option>
                         <option value="1.55" selected>แอคทีฟปานกลาง / ซ้อมหนัก (3-5 วัน/สัปดาห์)</option>
-                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปดาห์)</option>
+                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปวาร์)</option>
                     </select>
                 </div>
                 <div class="col-span-2">
@@ -115,15 +115,15 @@
         let globalHistory = [];
         let latestFileSha = null;
 
-        // ⚙️ ล็อกบัญชีอัตโนมัติ (แก้ไขวิธีที่ 1: แปะข้อมูลชื่อตรงนี้เลย จะได้ไม่เด้ง Alert แจ้งเตือน)
+        // ⚙️ ล็อกบัญชีอัตโนมัติคลังข้อมูลหลักของคุณ
         const user = "maleeart"; 
         const repo = "Calman";   
 
         // ✂️ ส่วนลับ 1: หั่นแบ่ง GitHub Token ออกเป็น 2 ท่อน
-        const ghPart1 = "ghp_WoYXqBbWH7Repfhb"; 
+        const ghPart1 = "ghp_WoYXqBbWH7Repfbb"; 
         const ghPart2 = "9YvoQ1gaVi7DgL0IMRSv";
 
-        // ✂️ ส่วนลับ 2: หั่นแบ่ง Qwen API Key ออกเป็น 2 ท่อน (จาก DashScope หรือเจ้าอื่น ๆ)
+        // ✂️ ส่วนลับ 2: หั่นแบ่ง OpenRouter API Key ออกเป็น 2 ท่อน
         const qwenPart1 = "sk-or-v1-97d893648ce140880e2f4efbcaf";
         const qwenPart2 = "a00d79f5f1ad351902c91f2d42d5c8000348b";
 
@@ -251,32 +251,36 @@
             }
         }
 
-        // ─── 🧠 เปลี่ยนระบบหลังบ้านมาเรียกใช้ Qwen API ───────────────────────────────
-        / 2. ปรับตรงฟังก์ชัน callQwen (อยู่ช่วงบรรทัดที่ 202) ให้เปลี่ยน url และ model เป็นของ OpenRouter ตามนี้ครับ:
-async function callQwen(foodText) {
-    const apiKey = qwenPart1 + qwenPart2;
-    const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
+        // ─── 🧠 สลับมาเรียกใช้งานผ่านระบบ OpenRouter API ───────────────────────────────
+        async function callQwen(foodText) {
+            const apiKey = qwenPart1 + qwenPart2;
+            const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { // เปลี่ยน URL
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'qwen/qwen-2.5-7b-instruct:free', // ใช้เวอร์ชันฟรีของ OpenRouter
-            messages: [
-                { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
-                { role: 'user', content: prompt }
-            ],
-            temperature: 0.1
-        })
-    });
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'qwen/qwen-2.5-7b-instruct:free', // เลือกใช้งานโมเดลฟรีของ OpenRouter
+                    messages: [
+                        { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.1
+                })
+            });
 
             if (res.status === 429) throw new Error('QWEN_429: ระบบหนาแน่นชั่วคราว กรุณาลองใหม่');
             if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: ${res.statusText}`);
 
             const data = await res.json();
+            
+            if (!data.choices || data.choices.length === 0) {
+                throw new Error('QWEN_EMPTY_RESPONSE: ไม่ได้คำตอบจากโมเดลปลายทาง');
+            }
+
             const rawText = data.choices[0].message.content.replace(/```json|```/g, '').trim();
             
             try {
