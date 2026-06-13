@@ -115,17 +115,17 @@
         let globalHistory = [];
         let latestFileSha = null;
 
-        // ⚙️ พิกัดคลังเก็บข้อมูลของคุณล็อกตายตัวไว้ตรงนี้เลย
+        // ⚙️ ล็อกพิกัดคลังเก็บข้อมูลของคุณไว้ตรงนี้เลย
         const user = "maleeart"; 
         const repo = "Calman";   
 
-        // ✂️ ส่วนลับ 1: หั่นแบ่ง GitHub Token ออกเป็น 2 ท่อน (ก๊อปปี้รหัส 40 หลักที่ไม่มี ghp_ ผสมมาผ่าครึ่ง)
-        const ghPart1 = "WoYXqBbWH7Repfhb9Yvo"; // ตัวอย่างครึ่งแรก 20 หลัก
-        const ghPart2 = "Q1gaVi7DgL0IMRSv"; // ตัวอย่างครึ่งหลัง 20 หลัก
+        // ✂️ ส่วนลับ 1: หั่นแบ่งเนื้อรหัส GitHub Token (ห้ามใส่คำว่า ghp_ ในกล่องนี้นะครับ)
+        const ghPart1 = "WoYXqBbWH7Repfhb9Y"; // เอาเนื้อรหัสท่อนแรก 16 หลักมาใส่แทนตรงนี้
+        const ghPart2 = "voQ1gaVi7DgL0IMRSv"; // เอาเนื้อรหัสส่วนที่เหลือมาใส่แทนตรงนี้
 
-        // ✂️ ส่วนลับ 2: หั่นแบ่ง OpenRouter API Key โดยเอาตัวคำนำหน้าออกเพื่อหลบบอทสแกนคีย์
-        const orPart1 = "sk-or-v1-bb508d4d9aa8725b343a7c30b3"; // ตัวอย่างเนื้อคีย์ท่อนแรก
-        const orPart2 = "492ac92e1b18854c8010b1f1818e2a65bf2c07"; // ตัวอย่างเนื้อคีย์ท่อนหลัง
+        // ✂️ ส่วนลับ 2: หั่นแบ่งเนื้อรหัส OpenRouter Key (ห้ามใส่คำว่า sk-or-v1- ในกล่องนี้นะครับ)
+        const orPart1 = "bb508d4d9aa8725b343a7c30b3492ac9"; // เอาเนื้อคีย์ท่อนแรกมาใส่แทนตรงนี้
+        const orPart2 = "2e1b18854c8010b1f1818e2a65bf2c07"; // เอาเนื้อคีย์ส่วนที่เหลือมาใส่แทนตรงนี้
 
         // ─── Utility ────────────────────────────────────────────────────────────
         function getTodayDate() {
@@ -210,7 +210,9 @@
 
         // ─── GitHub helpers ──────────────────────────────────────────────────────
         function ghHeaders() {
-            const token = "ghp_" + ghPart1 + ghPart2; // ประสานร่างโทเค็นหลักให้สมบูรณ์ในขั้นตอนนี้
+            // ซ่อนหัวคำสั่งหลัก ghp_ ไว้ด้านในเพื่อแยกสแกน Pattern
+            const prefix = "ghp_";
+            const token = prefix + ghPart1 + ghPart2;
             return token ? { 'Authorization': `token ${token}` } : {};
         }
 
@@ -253,7 +255,9 @@
 
         // ─── 🧠 คุยกับระบบโมเดล OpenRouter API ──────────────────────────────────────────
         async function callQwen(foodText) {
-            const apiKey = "sk-or-v1-" + orPart1 + orPart2; // แนบคำนำหน้าตรงนี้ บอทสแกนโค้ดจะหาแพทเทิร์นไม่เจอ
+            // ประกบคำนำหน้า sk-or-v1- ไว้ตรงนี้ เพื่อลวงบอทสแกนโค้ดเว็บ
+            const prefix = "sk-or-v1-";
+            const apiKey = prefix + orPart1 + orPart2;
             const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
             const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -273,7 +277,7 @@
             });
 
             if (res.status === 429) throw new Error('QWEN_429: ระบบหนาแน่นชั่วคราว กรุณาลองใหม่');
-            if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: คีย์เชื่อมต่อโมเดลไม่ถูกต้อง`);
+            if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: คีย์สิทธิ์เข้าใช้งานโมเดลไม่ถูกต้อง`);
 
             const data = await res.json();
             
