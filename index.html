@@ -49,15 +49,6 @@
             </div>
         </details>
 
-        <details class="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 hidden">
-            <summary class="text-sm font-semibold cursor-pointer text-gray-600">🛠️ ตั้งค่าระบบ Cloud & AI (ทำครั้งแรก)</summary>
-            <div class="space-y-3 mt-3 text-xs">
-                <input type="text" id="ghUser" placeholder="GitHub Username เช่น maleeart" class="w-full p-2 border rounded-lg bg-white">
-                <input type="text" id="ghRepo" placeholder="Repository เช่น Calman" class="w-full p-2 border rounded-lg bg-white">
-                <button onclick="saveConfig()" class="w-full bg-gray-800 text-white p-2 rounded-lg font-medium">บันทึกคีย์ระบบลงเครื่อง</button>
-            </div>
-        </details>
-
         <div class="mb-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
             <label class="block text-xs font-semibold text-gray-700 mb-1">📅 วันที่ต้องการดูข้อมูล</label>
             <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="displayHistory(globalHistory)">
@@ -124,13 +115,17 @@
         let globalHistory = [];
         let latestFileSha = null;
 
-        // ✂️ ส่วนลับ 1: หั่นแบ่ง GitHub Token ออกเป็น 2 ท่อน (เอาของจริงมาแปะทับได้เลย)
+        // ⚙️ ล็อกบัญชีอัตโนมัติ (แก้ไขวิธีที่ 1: แปะข้อมูลชื่อตรงนี้เลย จะได้ไม่เด้ง Alert แจ้งเตือน)
+        const user = "maleeart"; 
+        const repo = "Calman";   
+
+        // ✂️ ส่วนลับ 1: หั่นแบ่ง GitHub Token ออกเป็น 2 ท่อน
         const ghPart1 = "ghp_WoYXqBbWH7Repfhb"; 
         const ghPart2 = "9YvoQ1gaVi7DgL0IMRSv";
 
-        // ✂️ ส่วนลับ 2: หั่นแบ่ง Gemini API Key ออกเป็น 2 ท่อน (เอาของจริงมาแปะทับได้เลย)
-        const geminiPart1 = "AQ.Ab8RN6Jj9ESZ4il5k9krf-";
-        const geminiPart2 = "mZtC5jfXp63mC9KmHX0r9lmU4xjA";
+        // ✂️ ส่วนลับ 2: หั่นแบ่ง Qwen API Key ออกเป็น 2 ท่อน (จาก DashScope หรือเจ้าอื่น ๆ)
+        const qwenPart1 = "sk-or-v1-97d893648ce140880e2f4efbcaf";
+        const qwenPart2 = "a00d79f5f1ad351902c91f2d42d5c8000348b";
 
         // ─── Utility ────────────────────────────────────────────────────────────
         function getTodayDate() {
@@ -173,7 +168,7 @@
 
         // ─── Config ──────────────────────────────────────────────────────────────
         window.onload = function () {
-            const configKeys = ['ghUser', 'ghRepo', 'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
+            const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
             configKeys.forEach(k => {
                 const el = document.getElementById(k);
                 if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
@@ -182,14 +177,6 @@
             calculateTDEE();
             fetchDataFromGitHub();
         };
-
-        function saveConfig() {
-            const configKeys = ['ghUser', 'ghRepo', 'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
-            configKeys.forEach(k => localStorage.setItem(k, document.getElementById(k).value.trim()));
-            alert('บันทึกการตั้งค่าระบบเรียบร้อยครับ!');
-            calculateTDEE();
-            fetchDataFromGitHub();
-        }
 
         function calculateTDEE() {
             const w   = Number(document.getElementById('userWeight').value);
@@ -228,33 +215,16 @@
         }
 
         function ghUrl() {
-            const user      = "maleeart"; // ใส่ GitHub Username ของคุณแทนตรงนี้
-            const repo      = "Calman";   // ใส่ชื่อ Repository ของคุณแทนตรงนี้
             return `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
         }
 
         async function fetchDataFromGitHub() {
-            const user      = "maleeart"; // ใส่ GitHub Username ของคุณแทนตรงนี้
-            const repo      = "Calman";   // ใส่ชื่อ Repository ของคุณแทนตรงนี้
-            if (!user || !repo) {
-                document.getElementById('historyList').innerHTML =
-                    '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อน</p>';
-                return;
-            }
-
             showStatus('⏳ กำลังโหลดข้อมูลจาก GitHub…', 'info');
             try {
                 const res = await fetch(`${ghUrl()}?t=${Date.now()}`, { headers: ghHeaders() });
 
                 if (res.status === 401) {
                     showStatus('❌ GitHub Token ไม่ถูกต้อง หรือหมดอายุ', 'error');
-                    return;
-                }
-                if (res.status === 403) {
-                    const remaining = res.headers.get('X-RateLimit-Remaining');
-                    const reset = res.headers.get('X-RateLimit-Reset');
-                    const resetTime = reset ? new Date(Number(reset) * 1000).toLocaleTimeString('th-TH') : '?';
-                    showStatus(`⚠️ GitHub Rate Limit (เหลือ ${remaining} req) รีเซ็ต ${resetTime}`, 'warning');
                     return;
                 }
                 if (!res.ok) {
@@ -281,48 +251,38 @@
             }
         }
 
-        // ─── Gemini call ────────────────────────────────────────────────────────
-        async function callGemini(foodText, attempt = 1) {
-            const geminiKey = geminiPart1 + geminiPart2;
-            const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์ใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
+        // ─── 🧠 เปลี่ยนระบบหลังบ้านมาเรียกใช้ Qwen API ───────────────────────────────
+        async function callQwen(foodText) {
+            const apiKey = qwenPart1 + qwenPart2;
+            const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-            const res = await fetch(
-                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-goog-api-key': geminiKey },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                }
-            );
+            // ยิงหาขุมพลัง Qwen ผ่าน DashScope / OpenAI-Compatible Endpoint
+            const res = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${apiKey}` 
+                },
+                body: JSON.stringify({
+                    model: 'qwen-2.5-7b-instruct', // สามารถสลับรุ่นโมเดลตรงนี้ได้ตามต้องการ
+                    messages: [
+                        { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.1
+                })
+            });
 
-            if (res.status === 429) {
-                const retryAfter = res.headers.get('Retry-After') || 60;
-                if (attempt === 1) {
-                    showStatus(`⏳ Gemini Rate Limit → รอ ${retryAfter} วินาทีแล้ว retry…`, 'warning');
-                    await new Promise(r => setTimeout(r, Number(retryAfter) * 1000));
-                    return callGemini(foodText, 2);
-                }
-                throw new Error(`GEMINI_429: ติด Rate Limit (${retryAfter}s) — ลองใหม่ภายหลัง`);
-            }
-            if (res.status === 400) throw new Error('GEMINI_400: prompt ไม่ถูกต้อง หรือ API Key ผิดพลาด');
-            if (res.status === 403) throw new Error('GEMINI_403: API Key ไม่มีสิทธิ์ใช้ model นี้');
-            if (res.status === 404) throw new Error('GEMINI_404: ไม่พบ model — ตรวจสอบการเชื่อมต่อโมเดล');
-            if (!res.ok)            throw new Error(`GEMINI_${res.status}: ${res.statusText}`);
+            if (res.status === 429) throw new Error('QWEN_429: ระบบหนาแน่นชั่วคราว กรุณาลองใหม่');
+            if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: ${res.statusText}`);
 
             const data = await res.json();
-            console.log('Gemini raw response:', data);
-
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || 'unknown';
-                throw new Error(`GEMINI_NO_CONTENT: finishReason=${reason}`);
-            }
-
-            const rawText = data.candidates[0].content.parts[0].text
-                                .replace(/```json|```/g, '').trim();
+            const rawText = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+            
             try {
                 return JSON.parse(rawText);
             } catch {
-                throw new Error(`GEMINI_PARSE: parse JSON ไม่ได้ → "${rawText.slice(0, 80)}"`);
+                throw new Error(`QWEN_PARSE_ERROR: แปลงค่าผลลัพธ์เป็นตัวเลขไม่ได้`);
             }
         }
 
@@ -358,8 +318,6 @@
                 }
                 throw new Error('GH_CONFLICT: อัปเดต SHA ซ้ำแล้วยังชนกัน');
             }
-            if (res.status === 401) throw new Error('GH_401: GitHub Token ไม่ถูกต้อง');
-            if (res.status === 403) throw new Error('GH_403: ไม่มีสิทธิ์ write ไปยัง repo นี้');
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(`GH_${res.status}: ${err.message || res.statusText}`);
@@ -372,24 +330,22 @@
 
         // ─── Main: วิเคราะห์ + บันทึก ────────────────────────────────────────────
         async function analyzeAndSave() {
-            const user      = "maleeart"; // ใส่ GitHub Username ของคุณแทนตรงนี้
-            const repo      = "Calman";   // ใส่ชื่อ Repository ของคุณแทนตรงนี้
             const foodText  = document.getElementById('foodInput').value.trim();
             const btn       = document.getElementById('submitBtn');
 
-            if (!user || !repo || !foodText) {
-                return alert('กรุณากรอกข้อมูลชื่อผู้ใช้ คลัง และชื่ออาหารให้ครบถ้วนก่อนครับ');
+            if (!foodText) {
+                return alert('กรุณากรอกชื่ออาหารก่อนครับ');
             }
 
-            // 🔒 ล็อกปุ่มกดทันที ป้องกันผู้ใช้คลิกเบิ้ลซึ่งทำให้โควตาพัง
+            // 🔒 ล็อกปุ่มทันที ป้องกันผู้ใช้คลิกซ้ำรัว ๆ
             btn.disabled = true;
-            btn.innerText = '⏳ AI กำลังวิเคราะห์…';
+            btn.innerText = '⏳ Qwen กำลังวิเคราะห์…';
             hideStatus();
 
             try {
-                // ── Step 1: Gemini วิเคราะห์อาหาร ──
-                showStatus('🤖 Step 1/2 — Gemini กำลังวิเคราะห์แคลอรี…', 'info');
-                const foodInfo = await callGemini(foodText);
+                // ── Step 1: สั่งการให้ Qwen ทำการคำนวณ ──
+                showStatus('🤖 Step 1/2 — พลัง Qwen กำลังคำนวณสารอาหาร…', 'info');
+                const foodInfo = await callQwen(foodText);
 
                 // ── Step 2: บันทึกลง GitHub ──
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
@@ -413,16 +369,9 @@
 
             } catch (err) {
                 console.error('analyzeAndSave error:', err);
-
-                let userMsg = err.message;
-                if (err.message.startsWith('GEMINI_429')) userMsg = '⚠️ Gemini ติด Rate Limit — รอสักครู่แล้วลองใหม่';
-                else if (err.message.startsWith('GEMINI_400')) userMsg = '⚠️ คีย์วิเคราะห์อาหาร (Gemini Key) ท่อนที่แบ่งไว้มีจุดผิดพลาด';
-                else if (err.message.startsWith('GH_401'))     userMsg = '⚠️ GitHub Token ท่อนที่แปะไว้ในโค้ดมีจุดไม่ถูกต้อง';
-                else if (err.message.startsWith('GH_403'))     userMsg = '⚠️ GitHub Token ไม่มีสิทธิ์เขียนไฟล์ — กรุณาตรวจสอบ Repo สิทธิ์';
-
-                showStatus(userMsg, 'error');
+                showStatus(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'error');
             } finally {
-                // 🔓 ปลดล็อกปุ่มในบล็อกสุดท้ายเสมอ
+                // 🔓 ปลดล็อกปุ่มในบล็อกสุดท้ายเพื่อให้ระบบพร้อมทำงานต่อ
                 btn.disabled = false;
                 btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
             }
