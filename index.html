@@ -115,7 +115,7 @@
         let globalHistory = [];
         let latestFileSha = null;
 
-        // ⚙️ ล็อกบัญชีอัตโนมัติคลังข้อมูลหลักของคุณ
+        // ⚙️ ล็อกพิกัดตำแหน่งคลังของคุณ
         const user = "maleeart"; 
         const repo = "Calman";   
 
@@ -251,9 +251,9 @@
             }
         }
 
-        // ─── 🧠 สลับมาเรียกใช้งานผ่านระบบ OpenRouter API ───────────────────────────────
+        // ─── 🧠 คุยกับระบบโมเดล OpenRouter API ──────────────────────────────────────────
         async function callQwen(foodText) {
-            const apiKey = qwenPart1 + qwenPart2;
+            const apiKey = qwenPart1 + qwenPart2; // ผสานร่างพิกัดคีย์ที่แก้ไขชื่อตัวแปรให้ถูกต้องแล้ว
             const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
             const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -263,7 +263,7 @@
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'qwen/qwen-2.5-7b-instruct:free', // เลือกใช้งานโมเดลฟรีของ OpenRouter
+                    model: 'qwen/qwen-2.5-7b-instruct:free',
                     messages: [
                         { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
                         { role: 'user', content: prompt }
@@ -341,17 +341,14 @@
                 return alert('กรุณากรอกชื่ออาหารก่อนครับ');
             }
 
-            // 🔒 ล็อกปุ่มทันที ป้องกันผู้ใช้คลิกซ้ำรัว ๆ
             btn.disabled = true;
             btn.innerText = '⏳ Qwen กำลังวิเคราะห์…';
             hideStatus();
 
             try {
-                // ── Step 1: สั่งการให้ Qwen ทำการคำนวณ ──
                 showStatus('🤖 Step 1/2 — พลัง Qwen กำลังคำนวณสารอาหาร…', 'info');
                 const foodInfo = await callQwen(foodText);
 
-                // ── Step 2: บันทึกลง GitHub ──
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
 
                 const newItem = {
@@ -375,7 +372,6 @@
                 console.error('analyzeAndSave error:', err);
                 showStatus(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'error');
             } finally {
-                // 🔓 ปลดล็อกปุ่มในบล็อกสุดท้ายเพื่อให้ระบบพร้อมทำงานต่อ
                 btn.disabled = false;
                 btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
             }
