@@ -1,31 +1,5 @@
 [
   {
-    "id": 1781357253321,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "ข้าวสวย",
-        "calories": 250,
-        "protein": 5
-      },
-      {
-        "name": "ผัดกะเพราเนื้อ",
-        "calories": 400,
-        "protein": 25
-      },
-      {
-        "name": "ไข่ดาว",
-        "calories": 150,
-        "protein": 10
-      }
-    ],
-    "date": "2026-06-13",
-    "time": "20:27",
-    "menu": "ข้าวกระเพราเนื้อไข่ดาว",
-    "calories": 800,
-    "protein": 40
-  },
-  {
     "id": 1781342588269,
     "model": "",
     "aiItems": [],
