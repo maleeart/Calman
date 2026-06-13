@@ -258,7 +258,7 @@
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'qwen/qwen-2.5-72b-instruct',
+                    model: 'google/gemma-2-9b-it',
                     messages: [
                         { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
                         { role: 'user', content: prompt }
