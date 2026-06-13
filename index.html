@@ -252,26 +252,26 @@
         }
 
         // ─── 🧠 เปลี่ยนระบบหลังบ้านมาเรียกใช้ Qwen API ───────────────────────────────
-        async function callQwen(foodText) {
-            const apiKey = qwenPart1 + qwenPart2;
-            const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
+        / 2. ปรับตรงฟังก์ชัน callQwen (อยู่ช่วงบรรทัดที่ 202) ให้เปลี่ยน url และ model เป็นของ OpenRouter ตามนี้ครับ:
+async function callQwen(foodText) {
+    const apiKey = qwenPart1 + qwenPart2;
+    const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-            // ยิงหาขุมพลัง Qwen ผ่าน DashScope / OpenAI-Compatible Endpoint
-            const res = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${apiKey}` 
-                },
-                body: JSON.stringify({
-                    model: 'qwen-2.5-7b-instruct', // สามารถสลับรุ่นโมเดลตรงนี้ได้ตามต้องการ
-                    messages: [
-                        { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.1
-                })
-            });
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { // เปลี่ยน URL
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'qwen/qwen-2.5-7b-instruct:free', // ใช้เวอร์ชันฟรีของ OpenRouter
+            messages: [
+                { role: 'system', content: 'You are a nutrition expert helper. Reply ONLY with JSON.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.1
+        })
+    });
 
             if (res.status === 429) throw new Error('QWEN_429: ระบบหนาแน่นชั่วคราว กรุณาลองใหม่');
             if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: ${res.statusText}`);
