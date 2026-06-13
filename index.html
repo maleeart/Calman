@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Calorie Tracker & TDEE Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="config.js"></script>
 </head>
 <body class="bg-gray-100 p-4 font-sans text-gray-800">
     <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg">
@@ -115,17 +116,9 @@
         let globalHistory = [];
         let latestFileSha = null;
 
-        // ⚙️ ล็อกพิกัดคลังเก็บข้อมูลของคุณไว้ตรงนี้เลย
+        // ⚙️ พิกัดคลังเก็บข้อมูลล็อกตายตัว
         const user = "maleeart"; 
         const repo = "Calman";   
-
-        // ✂️ ส่วนลับ 1: หั่นแบ่งเนื้อรหัส GitHub Token (ห้ามใส่คำว่า ghp_ ในกล่องนี้นะครับ)
-        const ghPart1 = "WoYXqBbWH7Repfhb9Y"; // เอาเนื้อรหัสท่อนแรก 16 หลักมาใส่แทนตรงนี้
-        const ghPart2 = "voQ1gaVi7DgL0IMRSv"; // เอาเนื้อรหัสส่วนที่เหลือมาใส่แทนตรงนี้
-
-        // ✂️ ส่วนลับ 2: หั่นแบ่งเนื้อรหัส OpenRouter Key (ห้ามใส่คำว่า sk-or-v1- ในกล่องนี้นะครับ)
-        const orPart1 = "bb508d4d9aa8725b343a7c30b34"; // เอาเนื้อคีย์ท่อนแรกมาใส่แทนตรงนี้
-        const orPart2 = "92ac92e1b18854c8010b1f1818e2a65bf2c07"; // เอาเนื้อคีย์ส่วนที่เหลือมาใส่แทนตรงนี้
 
         // ─── Utility ────────────────────────────────────────────────────────────
         function getTodayDate() {
@@ -159,7 +152,7 @@
             bar.className = `mb-4 text-xs text-center py-2 px-3 rounded-xl ${styles[type] || styles.info}`;
             bar.innerText = msg;
             bar.classList.remove('hidden');
-            if (type === 'success') setTimeout(() => bar.classList.add('hidden'), 4000);
+            if (type === 'success') setTimeout(() => bar.className += ' hidden', 4000);
         }
 
         function hideStatus() {
@@ -210,9 +203,8 @@
 
         // ─── GitHub helpers ──────────────────────────────────────────────────────
         function ghHeaders() {
-            // ซ่อนหัวคำสั่งหลัก ghp_ ไว้ด้านในเพื่อแยกสแกน Pattern
-            const prefix = "ghp_";
-            const token = prefix+ghPart1+ghPart2;
+            // ดึงฟังก์ชันประกอบร่างคีย์ตรงจากไฟล์ CONFIG ที่แยกไว้ภายนอก
+            const token = typeof CONFIG !== 'undefined' ? CONFIG.getGH() : '';
             return token ? { 'Authorization': `token ${token}` } : {};
         }
 
@@ -226,7 +218,7 @@
                 const res = await fetch(`${ghUrl()}?t=${Date.now()}`, { headers: ghHeaders() });
 
                 if (res.status === 401) {
-                    showStatus('❌ GitHub Token ไม่ถูกต้อง หรือใส่ตำแหน่งสลับท่อน', 'error');
+                    showStatus('❌ GitHub Token ไม่ถูกต้อง (ตรวจสอบข้อมูลในไฟล์ config.js)', 'error');
                     return;
                 }
                 if (!res.ok) {
@@ -255,9 +247,8 @@
 
         // ─── 🧠 คุยกับระบบโมเดล OpenRouter API ──────────────────────────────────────────
         async function callQwen(foodText) {
-            // ประกบคำนำหน้า sk-or-v1- ไว้ตรงนี้ เพื่อลวงบอทสแกนโค้ดเว็บ
-            const prefix = "sk-or-v1-";
-            const apiKey = prefix+orPart1+orPart2;
+            // ดึงฟังก์ชันประกอบร่างคีย์ตรงจากไฟล์ CONFIG ที่แยกไว้ภายนอก
+            const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
             const prompt = `จงวิเคราะห์สรุปค่าแคลอรีและโปรตีนของอาหารต่อไปนี้: "${foodText}" โดยคำนวณแคลอรีรวมและโปรตีนรวมทั้งหมดออกมา และตอบกลับมาในรูปแบบ JSON Object เท่านั้น ห้ามมีมาร์กดาวน์หรือคำเกริ่นใดๆ โครงสร้างรูปแบบต้องเป็นแบบนี้ตรงๆ: {"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
             const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -277,7 +268,7 @@
             });
 
             if (res.status === 429) throw new Error('QWEN_429: ระบบหนาแน่นชั่วคราว กรุณาลองใหม่');
-            if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: คีย์สิทธิ์เข้าใช้งานโมเดลไม่ถูกต้อง`);
+            if (!res.ok) throw new Error(`QWEN_ERROR_${res.status}: สิทธิ์เข้าใช้งานโมเดลล้มเหลว ตรวจสอบคีย์ใน config.js`);
 
             const data = await res.json();
             
@@ -290,7 +281,7 @@
             try {
                 return JSON.parse(rawText);
             } catch {
-                throw new Error(`QWEN_PARSE_ERROR: รูปแบบผลลัพธ์ข้อมูลผิดพลาด`);
+                throw new Error('QWEN_PARSE_ERROR: รูปแบบผลลัพธ์ข้อมูลผิดพลาด');
             }
         }
 
