@@ -228,14 +228,14 @@
         }
 
         function ghUrl() {
-            const user = document.getElementById('ghUser').value.trim();
-            const repo = document.getElementById('ghRepo').value.trim();
+            const user      = "maleeart"; // ใส่ GitHub Username ของคุณแทนตรงนี้
+            const repo      = "Calman";   // ใส่ชื่อ Repository ของคุณแทนตรงนี้
             return `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
         }
 
         async function fetchDataFromGitHub() {
-            const user = document.getElementById('ghUser').value.trim();
-            const repo = document.getElementById('ghRepo').value.trim();
+            const user      = "maleeart"; // ใส่ GitHub Username ของคุณแทนตรงนี้
+            const repo      = "Calman";   // ใส่ชื่อ Repository ของคุณแทนตรงนี้
             if (!user || !repo) {
                 document.getElementById('historyList').innerHTML =
                     '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อน</p>';
