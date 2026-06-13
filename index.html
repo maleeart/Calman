@@ -213,6 +213,8 @@
 
             return history.map(item => ({
                 id: item.id || Date.now() + Math.random(),
+                model: item.model || '',
+                aiItems: Array.isArray(item.aiItems) ? item.aiItems : [],
                 date: item.date || getTodayDate(),
                 time: item.time || '-',
                 menu: item.menu || '-',
@@ -291,93 +293,128 @@
                 throw new Error('OPENROUTER_KEY_MISSING: ไม่พบ OpenRouter API Key ใน config.js');
             }
 
+            const models = [
+                "deepseek/deepseek-v3",
+                "google/gemini-2.5-flash-lite",
+                "google/gemma-3-4b-it:free"
+            ];
+
             const prompt = `
-วิเคราะห์อาหารต่อไปนี้: "${foodText}"
+คุณเป็นนักโภชนาการ
 
-ให้ประมาณค่า:
-1. total_calories = แคลอรีรวม หน่วย kcal
-2. total_protein = โปรตีนรวม หน่วยกรัม
+ประเมินพลังงานและโปรตีนของอาหารไทย
+โดยอ้างอิงปริมาณมาตรฐานร้านอาหารทั่วไปในประเทศไทย
 
-ตอบกลับเป็น JSON Object เท่านั้น ห้ามมี markdown ห้ามมีคำอธิบาย เช่น:
-{"total_calories": 650, "total_protein": 35}
+กฎสำคัญ:
+- หากไม่แน่ใจ ให้เลือกค่ากลาง
+- ห้ามประเมินสูงเกินจริง
+- อาหาร 1 จานทั่วไป ไม่ควรเกิน 1200 kcal
+- หากเป็นอาหารหลายรายการ ให้แยกคำนวณทีละรายการ
+- แสดงที่มาของการคำนวณเป็นรายเมนู
+- ตอบกลับเป็น JSON เท่านั้น ห้ามมี markdown ห้ามมีคำอธิบาย
+
+อาหาร:
+"${foodText}"
+
+รูปแบบ JSON ที่ต้องตอบ:
+{
+  "items": [
+    {
+      "name": "ชื่ออาหาร",
+      "calories": 0,
+      "protein": 0
+    }
+  ],
+  "total_calories": 0,
+  "total_protein": 0
+}
 `;
 
-            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'HTTP-Referer': 'https://maleeart.github.io/Calman/',
-                    'X-Title': 'Calman'
-                },
-                body: JSON.stringify({
-                    model: 'google/gemma-3-4b-it',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a nutrition estimation helper. Reply only valid JSON. Do not use markdown.'
+            let lastError = null;
+
+            for (const model of models) {
+                try {
+                    console.log("Trying model:", model);
+
+                    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                            'HTTP-Referer': 'https://maleeart.github.io/Calman/',
+                            'X-Title': 'Calman'
                         },
-                        {
-                            role: 'user',
-                            content: prompt
+                        body: JSON.stringify({
+                            model,
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: 'You are a nutrition estimation helper. Reply only valid JSON. Do not use markdown.'
+                                },
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ],
+                            temperature: 0.1,
+                            max_tokens: 500
+                        })
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    if (!res.ok) {
+                        console.warn('OpenRouter model failed:', model, data);
+
+                        if (
+                            res.status === 404 ||
+                            res.status === 429 ||
+                            res.status >= 500
+                        ) {
+                            lastError = new Error(`MODEL_FAIL_${model}_${res.status}`);
+                            continue;
                         }
-                    ],
-                    temperature: 0.1,
-                    max_tokens: 200
-                })
-            });
 
-            const data = await res.json().catch(() => ({}));
+                        if (res.status === 401) {
+                            throw new Error('OPENROUTER_401: API Key ไม่ถูกต้อง หรือยังไม่ได้ตั้งค่าใน config.js');
+                        }
 
-            if (res.status === 401) {
-                console.error('OpenRouter 401:', data);
-                throw new Error('OPENROUTER_401: API Key ไม่ถูกต้อง หรือยังไม่ได้ตั้งค่าใน config.js');
+                        if (res.status === 402) {
+                            throw new Error('OPENROUTER_402: เครดิต OpenRouter ไม่พอ หรือโมเดลนี้ต้องใช้เครดิต');
+                        }
+
+                        throw new Error(`OPENROUTER_${res.status}: ${data?.error?.message || res.statusText}`);
+                    }
+
+                    const rawText = data?.choices?.[0]?.message?.content;
+
+                    if (!rawText) {
+                        lastError = new Error(`EMPTY_RESPONSE_${model}`);
+                        continue;
+                    }
+
+                    const cleaned = rawText
+                        .replace(/```json/gi, '')
+                        .replace(/```/g, '')
+                        .trim();
+
+                    const parsed = JSON.parse(cleaned);
+
+                    return {
+                        items: Array.isArray(parsed.items) ? parsed.items : [],
+                        total_calories: Number(parsed.total_calories || 0),
+                        total_protein: Number(parsed.total_protein || 0),
+                        _model: model
+                    };
+
+                } catch (err) {
+                    console.error('OpenRouter error on model:', model, err);
+                    lastError = err;
+                    continue;
+                }
             }
 
-            if (res.status === 402) {
-                console.error('OpenRouter 402:', data);
-                throw new Error('OPENROUTER_402: เครดิต OpenRouter ไม่พอ หรือโมเดลนี้ต้องใช้เครดิต');
-            }
-
-            if (res.status === 404) {
-                console.error('OpenRouter 404:', data);
-                throw new Error('OPENROUTER_404: ไม่พบ endpoint ของโมเดลนี้ ให้เปลี่ยน model ในโค้ด');
-            }
-
-            if (res.status === 429) {
-                console.error('OpenRouter 429:', data);
-                throw new Error('OPENROUTER_429: เรียกใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่');
-            }
-
-            if (!res.ok) {
-                console.error('OpenRouter error:', data);
-                throw new Error(`OPENROUTER_${res.status}: ${data?.error?.message || res.statusText}`);
-            }
-
-            const rawText = data?.choices?.[0]?.message?.content;
-
-            if (!rawText) {
-                console.error('OpenRouter empty:', data);
-                throw new Error('OPENROUTER_EMPTY_RESPONSE: โมเดลไม่ส่งคำตอบกลับมา');
-            }
-
-            const cleaned = rawText
-                .replace(/```json/gi, '')
-                .replace(/```/g, '')
-                .trim();
-
-            try {
-                const parsed = JSON.parse(cleaned);
-
-                return {
-                    total_calories: Number(parsed.total_calories || 0),
-                    total_protein: Number(parsed.total_protein || 0)
-                };
-
-            } catch (e) {
-                console.error('OpenRouter parse failed. Raw text:', rawText);
-                throw new Error('OPENROUTER_PARSE_ERROR: โมเดลตอบกลับไม่ใช่ JSON ที่ถูกต้อง');
-            }
+            throw lastError || new Error('NO_MODEL_AVAILABLE: ไม่มีโมเดลที่ใช้งานได้ในตอนนี้');
         }
 
         async function commitToGitHub(newHistory, message, attempt = 1) {
@@ -463,10 +500,14 @@
 
                 const foodInfo = await callOpenRouter(foodText);
 
+                console.log('AI Result:', foodInfo);
+
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
 
                 const newItem = {
                     id: Date.now(),
+                    model: foodInfo._model,
+                    aiItems: foodInfo.items || [],
                     date: document.getElementById('selectedDate').value || getTodayDate(),
                     time: new Date().toLocaleTimeString('th-TH', {
                         hour: '2-digit',
@@ -486,7 +527,10 @@
                 document.getElementById('foodInput').value = '';
                 displayHistory(globalHistory);
 
-                showStatus(`✅ บันทึกสำเร็จ! +${newItem.calories} kcal · +${newItem.protein} g protein`, 'success');
+                showStatus(
+                    `✅ ${foodInfo._model} | +${newItem.calories} kcal · +${newItem.protein} g protein`,
+                    'success'
+                );
 
             } catch (err) {
                 console.error('analyzeAndSave error:', err);
@@ -546,6 +590,7 @@
                         <div class="max-w-[62%]">
                             <p class="font-medium text-gray-900 truncate">${escapeHtml(item.menu)}</p>
                             <span class="text-[9px] text-gray-400">📅 ${item.date} · ⏱️ ${item.time}</span>
+                            ${item.model ? `<div class="text-[9px] text-indigo-400 mt-0.5">🤖 ${escapeHtml(item.model)}</div>` : ''}
                         </div>
 
                         <div class="text-right">
