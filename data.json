@@ -1,5 +1,36 @@
 [
   {
+    "id": 1781409770546,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ก๋วยเตี๋ยวเรือชามเล็ก (15 บาท)",
+        "calories": 250,
+        "protein": 15
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรือชามเล็ก (15 บาท)",
+        "calories": 250,
+        "protein": 15
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรือชามเล็ก (15 บาท)",
+        "calories": 250,
+        "protein": 15
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรือชามเล็ก (15 บาท)",
+        "calories": 250,
+        "protein": 15
+      }
+    ],
+    "date": "2026-06-14",
+    "time": "11:02",
+    "menu": "ก๋วยเตี๋ยวเรือชามเล็ก 15 บาท 4 ชาม",
+    "calories": 1000,
+    "protein": 60
+  },
+  {
     "id": 1781357699277,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
