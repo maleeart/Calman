@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781429207913,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "หมูสะเต๊ะ 5 ไม้",
+        "calories": 350,
+        "protein": 25
+      }
+    ],
+    "date": "2026-06-14",
+    "time": "16:26",
+    "menu": "หมูสะเต๊ะ 5 ไม้",
+    "calories": 350,
+    "protein": 25
+  },
+  {
     "id": 1781409940767,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
