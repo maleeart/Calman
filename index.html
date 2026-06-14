@@ -7,9 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Calorie Tracker & TDEE Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="config.js"></script>
 </head>
-
 <body class="bg-gray-100 p-4 font-sans text-gray-800">
     <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg">
         <h1 class="text-2xl font-bold mb-1 text-center text-gray-900">AI Calorie & TDEE 📊</h1>
@@ -17,23 +15,19 @@
 
         <details class="mb-3 bg-blue-50 p-3 rounded-xl border border-blue-200" open>
             <summary class="text-sm font-semibold cursor-pointer text-blue-800">👤 คำนวณค่า BMR / TDEE ประจำตัว</summary>
-
             <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
                 <div>
                     <label class="block font-medium text-gray-700 mb-0.5">น้ำหนัก (kg)</label>
                     <input type="number" step="0.1" id="userWeight" value="64.6" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
                 </div>
-
                 <div>
                     <label class="block font-medium text-gray-700 mb-0.5">ส่วนสูง (cm)</label>
                     <input type="number" id="userHeight" value="167" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
                 </div>
-
                 <div>
                     <label class="block font-medium text-gray-700 mb-0.5">อายุ (ปี)</label>
                     <input type="number" id="userAge" value="31" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
                 </div>
-
                 <div>
                     <label class="block font-medium text-gray-700 mb-0.5">กิจกรรมการซ้อม</label>
                     <select id="userActivity" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
@@ -43,17 +37,26 @@
                         <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปดาห์)</option>
                     </select>
                 </div>
-
                 <div class="col-span-2">
                     <label class="block font-medium text-gray-700 mb-0.5">เป้าหมายโปรตีนต่อวัน (g)</label>
                     <input type="number" id="proteinGoal" value="120" class="w-full p-2 border rounded-lg bg-white" onchange="calculateTDEE()">
                 </div>
             </div>
-
             <div class="mt-3 bg-white p-2.5 rounded-lg border border-blue-100 flex justify-between text-center text-xs">
                 <div>BMR: <span id="bmrValue" class="font-bold text-blue-600">0</span> kcal</div>
                 <div class="border-r border-gray-200"></div>
                 <div>เป้าหมาย TDEE: <span id="tdeeValue" class="font-bold text-purple-600">0</span> kcal</div>
+            </div>
+        </details>
+
+        <details class="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 hidden">
+            <summary class="text-sm font-semibold cursor-pointer text-gray-600">🛠️ ตั้งค่าระบบ Cloud & AI (ทำครั้งแรก)</summary>
+            <div class="space-y-3 mt-3 text-xs">
+                <input type="password" id="geminiKey" placeholder="Gemini API Key" class="w-full p-2 border rounded-lg bg-white">
+                <input type="text" id="ghUser" placeholder="GitHub Username เช่น maleeart" class="w-full p-2 border rounded-lg bg-white">
+                <input type="text" id="ghRepo" placeholder="Repository เช่น Calman" class="w-full p-2 border rounded-lg bg-white">
+                <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-2 border rounded-lg bg-white">
+                <button onclick="saveConfig()" class="w-full bg-gray-800 text-white p-2 rounded-lg font-medium">บันทึกคีย์ระบบลงเครื่อง</button>
             </div>
         </details>
 
@@ -71,6 +74,7 @@
             วิเคราะห์และอัปเดตลงฐานข้อมูล
         </button>
 
+        <!-- Status bar แสดงสถานะ real-time -->
         <div id="statusBar" class="hidden mb-4 text-xs text-center py-2 px-3 rounded-xl"></div>
 
         <div class="bg-gray-900 text-white p-5 rounded-2xl mb-6 shadow-inner">
@@ -81,9 +85,7 @@
                     <div class="text-[11px] text-gray-400">กินไปแล้ว</div>
                     <div id="dayCal" class="text-xl font-bold text-orange-400">0 kcal</div>
                 </div>
-
                 <div class="border-r border-gray-700"></div>
-
                 <div>
                     <div class="text-[11px] text-gray-400">โปรตีนที่ได้รับ</div>
                     <div id="dayProtein" class="text-xl font-bold text-green-400">0 กรัม</div>
@@ -99,11 +101,9 @@
             <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
                 <div id="proteinBar" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
             </div>
-
             <div id="proteinStatus" class="text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700 mb-2">
                 กำลังคำนวณโปรตีน...
             </div>
-
             <div id="tdeeStatus" class="text-xs text-center font-medium text-gray-300 bg-gray-800 p-2 rounded-xl border border-gray-700">
                 กำลังคำนวณส่วนต่างพลังงาน...
             </div>
@@ -125,11 +125,9 @@
     <script>
         let globalTDEE = 2300;
         let globalHistory = [];
-        let latestFileSha = null;
+        let latestFileSha = null;  // ← SHA จาก GitHub เก็บไว้ใช้ตอน commit (ไม่ fetch ซ้ำ)
 
-        const user = "maleeart"; 
-        const repo = "Calman";
-
+        // ─── Utility ────────────────────────────────────────────────────────────
         function getTodayDate() {
             const d = new Date();
             d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -150,133 +148,133 @@
             return div.innerHTML;
         }
 
+        // แสดง status bar พร้อม style
         function showStatus(msg, type = 'info') {
             const bar = document.getElementById('statusBar');
             const styles = {
-                info: 'bg-blue-50 text-blue-700 border border-blue-200',
+                info:    'bg-blue-50 text-blue-700 border border-blue-200',
                 success: 'bg-green-50 text-green-700 border border-green-200',
-                error: 'bg-red-50 text-red-700 border border-red-200',
+                error:   'bg-red-50 text-red-700 border border-red-200',
                 warning: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
             };
-
             bar.className = `mb-4 text-xs text-center py-2 px-3 rounded-xl ${styles[type] || styles.info}`;
             bar.innerText = msg;
             bar.classList.remove('hidden');
-
-            if (type === 'success') {
-                setTimeout(() => bar.classList.add('hidden'), 4000);
-            }
+            if (type === 'success') setTimeout(() => bar.classList.add('hidden'), 4000);
         }
 
         function hideStatus() {
             document.getElementById('statusBar').classList.add('hidden');
         }
 
+        // ─── Config ──────────────────────────────────────────────────────────────
         window.onload = function () {
-            const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
-
+            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken',
+                                'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
             configKeys.forEach(k => {
                 const el = document.getElementById(k);
                 if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
             });
-
             document.getElementById('selectedDate').value = getTodayDate();
-
             calculateTDEE();
             fetchDataFromGitHub();
         };
 
+        function saveConfig() {
+            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken',
+                                'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
+            configKeys.forEach(k => localStorage.setItem(k, document.getElementById(k).value.trim()));
+            alert('บันทึกการตั้งค่าระบบเรียบร้อยครับ!');
+            calculateTDEE();
+            fetchDataFromGitHub();
+        }
+
         function calculateTDEE() {
-            const w = Number(document.getElementById('userWeight').value);
-            const h = Number(document.getElementById('userHeight').value);
-            const a = Number(document.getElementById('userAge').value);
+            const w   = Number(document.getElementById('userWeight').value);
+            const h   = Number(document.getElementById('userHeight').value);
+            const a   = Number(document.getElementById('userAge').value);
             const act = Number(document.getElementById('userActivity').value);
             const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
-
             localStorage.setItem('userWeight', w);
             localStorage.setItem('userHeight', h);
             localStorage.setItem('userAge', a);
             localStorage.setItem('userActivity', act);
             localStorage.setItem('proteinGoal', proteinGoal);
-
             const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
             globalTDEE = Math.round(bmr * act);
-
             document.getElementById('bmrValue').innerText = Math.round(bmr);
             document.getElementById('tdeeValue').innerText = globalTDEE;
-
             displayHistory(globalHistory);
         }
 
         function normalizeHistory(history) {
             if (!Array.isArray(history)) return [];
-
             return history.map(item => ({
-                id: item.id || Date.now() + Math.random(),
-                model: item.model || '',
-                aiItems: Array.isArray(item.aiItems) ? item.aiItems : [],
-                date: item.date || getTodayDate(),
-                time: item.time || '-',
-                menu: item.menu || '-',
+                id:       item.id       || Date.now() + Math.random(),
+                date:     item.date     || getTodayDate(),
+                time:     item.time     || '-',
+                menu:     item.menu     || '-',
                 calories: Number(item.calories || 0),
-                protein: Number(item.protein || 0)
+                protein:  Number(item.protein  || 0)
             }));
         }
 
-        function ghHeaders() {
-            const token = typeof CONFIG !== 'undefined' ? CONFIG.getGH() : '';
+        // ─── GitHub helpers ──────────────────────────────────────────────────────
 
-            return token
-                ? {
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github+json'
-                }
-                : {
-                    'Accept': 'application/vnd.github+json'
-                };
+        // คืนค่า headers พร้อม token เสมอ (fix: เดิม fetchDataFromGitHub ไม่ใส่ token)
+        function ghHeaders() {
+            const token = document.getElementById('ghToken').value.trim()
+                       || localStorage.getItem('ghToken') || '';
+            return token ? { 'Authorization': `token ${token}` } : {};
         }
 
         function ghUrl() {
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
             return `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
         }
 
+        // ─── โหลดข้อมูลจาก GitHub (ครั้งเดียวตอน load) ─────────────────────────
         async function fetchDataFromGitHub() {
-            showStatus('⏳ กำลังโหลดประวัติข้อมูลจาก GitHub…', 'info');
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            if (!user || !repo) {
+                document.getElementById('historyList').innerHTML =
+                    '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อน</p>';
+                return;
+            }
 
+            showStatus('⏳ กำลังโหลดข้อมูลจาก GitHub…', 'info');
             try {
-                const res = await fetch(`${ghUrl()}?t=${Date.now()}`, {
-                    headers: ghHeaders()
-                });
+                // ✅ FIX: ใส่ token ตอน GET ด้วย → ได้ limit 5,000 req/hr แทน 60 req/hr
+                const res = await fetch(`${ghUrl()}?t=${Date.now()}`, { headers: ghHeaders() });
 
                 if (res.status === 401) {
-                    showStatus('❌ GitHub Token ไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึง repo', 'error');
+                    showStatus('❌ GitHub Token ไม่ถูกต้อง หรือหมดอายุ', 'error');
                     return;
                 }
-
-                if (res.status === 404) {
-                    globalHistory = [];
-                    latestFileSha = null;
-
+                if (res.status === 403) {
+                    const remaining = res.headers.get('X-RateLimit-Remaining');
+                    const reset = res.headers.get('X-RateLimit-Reset');
+                    const resetTime = reset ? new Date(Number(reset) * 1000).toLocaleTimeString('th-TH') : '?';
+                    showStatus(`⚠️ GitHub Rate Limit (เหลือ ${remaining} req) รีเซ็ต ${resetTime}`, 'warning');
+                    return;
+                }
+                if (!res.ok) {
+                    globalHistory = []; latestFileSha = null;
                     document.getElementById('historyList').innerHTML =
-                        '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json บน GitHub ระบบจะสร้างให้เมื่อบันทึกครั้งแรก</p>';
-
+                        '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json</p>';
                     updateDashboardValues(0, 0);
                     updateWeekSummary([]);
                     hideStatus();
                     return;
                 }
 
-                if (!res.ok) {
-                    throw new Error(`GH_LOAD_${res.status}: โหลด data.json ไม่สำเร็จ`);
-                }
-
                 const fileData = await res.json();
-                latestFileSha = fileData.sha;
-
-                globalHistory = normalizeHistory(
+                latestFileSha  = fileData.sha;   // ← เก็บ SHA ไว้ใช้ตอน commit
+                globalHistory  = normalizeHistory(
                     JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')))
                 );
-
                 displayHistory(globalHistory);
                 hideStatus();
 
@@ -286,142 +284,86 @@
             }
         }
 
-        async function callOpenRouter(foodText) {
-            const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
-
-            if (!apiKey) {
-                throw new Error('OPENROUTER_KEY_MISSING: ไม่พบ OpenRouter API Key ใน config.js');
-            }
-
-            const models = [
-                "deepseek/deepseek-v3",
-                "google/gemini-2.5-flash-lite",
-                "google/gemma-3-4b-it:free"
-            ];
-
-            const prompt = `
-คุณเป็นนักโภชนาการ
-
-ประเมินพลังงานและโปรตีนของอาหารไทย
-โดยอ้างอิงปริมาณมาตรฐานร้านอาหารทั่วไปในประเทศไทย
-
-กฎสำคัญ:
-- หากไม่แน่ใจ ให้เลือกค่ากลาง
-- ห้ามประเมินสูงเกินจริง
-- อาหาร 1 จานทั่วไป ไม่ควรเกิน 1200 kcal
-- หากเป็นอาหารหลายรายการ ให้แยกคำนวณทีละรายการ
-- แสดงที่มาของการคำนวณเป็นรายเมนู
-- ตอบกลับเป็น JSON เท่านั้น ห้ามมี markdown ห้ามมีคำอธิบาย
-
-อาหาร:
+        // ─── Gemini call (พร้อม retry 1 ครั้ง) ──────────────────────────────────
+        async function callGemini(foodText, geminiKey, attempt = 1) {
+            // ── Prompt: แยกประเภทอาหารชัดเจน ──
+            const prompt = `คุณคือผู้เชี่ยวชาญโภชนาการ วิเคราะห์แคลอรีและโปรตีนของอาหารต่อไปนี้ให้แม่นยำที่สุด:
 "${foodText}"
 
-รูปแบบ JSON ที่ต้องตอบ:
-{
-  "items": [
-    {
-      "name": "ชื่ออาหาร",
-      "calories": 0,
-      "protein": 0
-    }
-  ],
-  "total_calories": 0,
-  "total_protein": 0
-}
-`;
+กฎ:
+- ถ้าเป็นสินค้าสำเร็จรูป/แบรนด์ (เช่น Wall, Yakoo, Lay's, โอรีโอ, มาม่า ฯลฯ): ให้ค้นหาข้อมูลโภชนาการจริงจาก label หรือเว็บไซต์อย่างเป็นทางการ
+- ถ้าเป็นอาหารทั่วไป (ข้าว, ไข่ดาว, ผัดกะเพรา ฯลฯ): ประมาณจากฐานข้อมูลมาตรฐาน USDA หรือ ThaiFCD
+- คำนวณตามปริมาณที่ระบุ (เช่น "1 แท่ง" "2 ฟอง" "1 ถ้วย")
 
-            let lastError = null;
+ตอบเฉพาะ JSON นี้เท่านั้น ห้ามมีข้อความอื่นหรือ markdown:
+{"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
 
-            for (const model of models) {
-                try {
-                    console.log("Trying model:", model);
-
-                    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`,
-                            'HTTP-Referer': 'https://maleeart.github.io/Calman/',
-                            'X-Title': 'Calman'
-                        },
-                        body: JSON.stringify({
-                            model,
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: 'You are a nutrition estimation helper. Reply only valid JSON. Do not use markdown.'
-                                },
-                                {
-                                    role: 'user',
-                                    content: prompt
-                                }
-                            ],
-                            temperature: 0.1,
-                            max_tokens: 500
-                        })
-                    });
-
-                    const data = await res.json().catch(() => ({}));
-
-                    if (!res.ok) {
-                        console.warn('OpenRouter model failed:', model, data);
-
-                        if (
-                            res.status === 404 ||
-                            res.status === 429 ||
-                            res.status >= 500
-                        ) {
-                            lastError = new Error(`MODEL_FAIL_${model}_${res.status}`);
-                            continue;
-                        }
-
-                        if (res.status === 401) {
-                            throw new Error('OPENROUTER_401: API Key ไม่ถูกต้อง หรือยังไม่ได้ตั้งค่าใน config.js');
-                        }
-
-                        if (res.status === 402) {
-                            throw new Error('OPENROUTER_402: เครดิต OpenRouter ไม่พอ หรือโมเดลนี้ต้องใช้เครดิต');
-                        }
-
-                        throw new Error(`OPENROUTER_${res.status}: ${data?.error?.message || res.statusText}`);
-                    }
-
-                    const rawText = data?.choices?.[0]?.message?.content;
-
-                    if (!rawText) {
-                        lastError = new Error(`EMPTY_RESPONSE_${model}`);
-                        continue;
-                    }
-
-                    const cleaned = rawText
-                        .replace(/```json/gi, '')
-                        .replace(/```/g, '')
-                        .trim();
-
-                    const parsed = JSON.parse(cleaned);
-
-                    return {
-                        items: Array.isArray(parsed.items) ? parsed.items : [],
-                        total_calories: Number(parsed.total_calories || 0),
-                        total_protein: Number(parsed.total_protein || 0),
-                        _model: model
-                    };
-
-                } catch (err) {
-                    console.error('OpenRouter error on model:', model, err);
-                    lastError = err;
-                    continue;
+            const res = await fetch(
+                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-goog-api-key': geminiKey },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        // ✅ Google Search Grounding: ให้ Gemini ค้น Google จริงๆ
+                        // → แม่นกับสินค้าแบรนด์ไทย เพราะดึงข้อมูลจากเว็บโดยตรง
+                        tools: [{ google_search: {} }],
+                        generationConfig: { temperature: 0.1 }   // ลด randomness → ตัวเลขเพี้ยนน้อยลง
+                    })
                 }
+            );
+
+            // ── Error handling ──
+            if (res.status === 429) {
+                const retryAfter = res.headers.get('Retry-After') || 60;
+                if (attempt === 1) {
+                    showStatus(`⏳ Gemini Rate Limit → รอ ${retryAfter}s แล้ว retry…`, 'warning');
+                    await new Promise(r => setTimeout(r, Number(retryAfter) * 1000));
+                    return callGemini(foodText, geminiKey, 2);
+                }
+                throw new Error(`GEMINI_429: ติด Rate Limit (${retryAfter}s) — ลองใหม่ภายหลัง`);
+            }
+            if (res.status === 400) throw new Error('GEMINI_400: prompt ผิดพลาด หรือ Search Grounding ไม่รองรับ key นี้');
+            if (res.status === 403) throw new Error('GEMINI_403: API Key ไม่มีสิทธิ์ใช้ model นี้');
+            if (res.status === 404) throw new Error('GEMINI_404: ไม่พบ model');
+            if (!res.ok)            throw new Error(`GEMINI_${res.status}: ${res.statusText}`);
+
+            const data = await res.json();
+            console.log('Gemini raw response:', JSON.stringify(data, null, 2));
+
+            // ── Parse: รองรับทั้ง response ปกติ และ grounding response ──
+            // เมื่อใช้ Search Grounding parts อาจมีหลาย element → หาแค่ที่เป็น text
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            const textPart = parts.find(p => p.text)?.text;
+
+            if (!textPart) {
+                const reason = data.candidates?.[0]?.finishReason
+                            || data.promptFeedback?.blockReason || 'unknown';
+                throw new Error(`GEMINI_NO_CONTENT: finishReason=${reason}`);
             }
 
-            throw lastError || new Error('NO_MODEL_AVAILABLE: ไม่มีโมเดลที่ใช้งานได้ในตอนนี้');
+            // ดึงเฉพาะ JSON ออกมา (กัน grounding metadata หลุดเข้ามา)
+            const jsonMatch = textPart.match(/\{[^{}]*"total_calories"[^{}]*\}/);
+            if (!jsonMatch) {
+                // fallback: ลองหา JSON ทั่วไป
+                const anyJson = textPart.match(/\{[\s\S]*?\}/);
+                if (anyJson) {
+                    try { return JSON.parse(anyJson[0]); } catch {}
+                }
+                throw new Error(`GEMINI_PARSE: ไม่พบ JSON ใน response → "${textPart.slice(0, 100)}"`);
+            }
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch {
+                throw new Error(`GEMINI_PARSE: parse ไม่ได้ → "${jsonMatch[0]}"`);
+            }
         }
 
+        // ─── Commit ไปยัง GitHub (พร้อม retry กรณี SHA เก่า) ───────────────────
         async function commitToGitHub(newHistory, message, attempt = 1) {
-            const url = ghUrl();
-            const sha = latestFileSha;
-
-            const body = {
+            const url    = ghUrl();
+            const sha    = latestFileSha;
+            const body   = {
                 message,
                 content: utf8ToBase64(JSON.stringify(newHistory, null, 2)),
                 ...(sha ? { sha } : {})
@@ -429,147 +371,125 @@
 
             const res = await fetch(url, {
                 method: 'PUT',
-                headers: {
-                    ...ghHeaders(),
-                    'Content-Type': 'application/json'
-                },
+                headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
 
-            if (res.status === 401) {
-                throw new Error('GH_401: GitHub Token ไม่ถูกต้อง');
-            }
-
-            if (res.status === 403) {
-                throw new Error('GH_403: GitHub Token ไม่มีสิทธิ์เขียนไฟล์ หรือ repo ไม่อนุญาต');
-            }
-
             if (res.status === 409 || res.status === 422) {
+                // SHA conflict → re-fetch SHA แล้วลองใหม่ 1 ครั้ง
                 if (attempt === 1) {
-                    showStatus('⏳ ดึงสถานะคลังเพื่ออัปเดตข้อมูลซ้ำ…', 'warning');
-
-                    const fileRes = await fetch(`${url}?t=${Date.now()}`, {
-                        headers: ghHeaders()
-                    });
-
-                    if (!fileRes.ok) {
-                        throw new Error(`GH_SHA_FETCH_FAIL: ${fileRes.status}`);
-                    }
-
+                    showStatus('⏳ SHA conflict → ดึง SHA ใหม่แล้ว retry…', 'warning');
+                    const fileRes = await fetch(`${url}?t=${Date.now()}`, { headers: ghHeaders() });
+                    if (!fileRes.ok) throw new Error(`GH_SHA_FETCH_FAIL: ${fileRes.status}`);
                     const fileData = await fileRes.json();
                     latestFileSha = fileData.sha;
 
+                    // Merge: เอา history ที่ server มี + item ใหม่ที่เราเพิ่ม (item แรกใน newHistory)
                     const serverHistory = normalizeHistory(
                         JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')))
                     );
-
                     const mergedHistory = [newHistory[0], ...serverHistory];
-
                     return commitToGitHub(mergedHistory, message, 2);
                 }
-
-                throw new Error('GH_CONFLICT: มีการแก้ไฟล์ชนกัน กรุณากดใหม่อีกครั้ง');
+                throw new Error('GH_CONFLICT: อัปเดต SHA ซ้ำแล้วยังชนกัน');
             }
-
+            if (res.status === 401) throw new Error('GH_401: GitHub Token ไม่ถูกต้อง');
+            if (res.status === 403) throw new Error('GH_403: ไม่มีสิทธิ์ write ไปยัง repo นี้');
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(`GH_${res.status}: ${err.message || res.statusText}`);
             }
 
             const commitData = await res.json();
-            latestFileSha = commitData.content.sha;
-
+            latestFileSha  = commitData.content.sha;   // ← อัปเดต SHA ที่เก็บไว้
             return commitData;
         }
 
+        // ─── Main: วิเคราะห์ + บันทึก ────────────────────────────────────────────
         async function analyzeAndSave() {
-            const foodText = document.getElementById('foodInput').value.trim();
-            const btn = document.getElementById('submitBtn');
+            const geminiKey = document.getElementById('geminiKey').value.trim();
+            const user      = document.getElementById('ghUser').value.trim();
+            const repo      = document.getElementById('ghRepo').value.trim();
+            const token     = document.getElementById('ghToken').value.trim();
+            const foodText  = document.getElementById('foodInput').value.trim();
+            const btn       = document.getElementById('submitBtn');
 
-            if (!foodText) {
-                alert('กรุณากรอกชื่ออาหารก่อนครับ');
-                return;
+            if (!geminiKey || !user || !repo || !token || !foodText) {
+                return alert('กรุณากรอกข้อมูลตั้งค่าระบบและชื่ออาหารให้ครบถ้วนก่อนครับ');
             }
 
             btn.disabled = true;
-            btn.innerText = '⏳ ระบบกำลังวิเคราะห์…';
+            btn.innerText = '⏳ AI กำลังวิเคราะห์…';
             hideStatus();
 
             try {
-                showStatus('🤖 Step 1/2 — OpenRouter กำลังคำนวณอาหาร…', 'info');
+                // ── Step 1: Gemini วิเคราะห์อาหาร ──
+                showStatus('🤖 Step 1/2 — Gemini กำลังวิเคราะห์แคลอรี…', 'info');
+                const foodInfo = await callGemini(foodText, geminiKey);
 
-                const foodInfo = await callOpenRouter(foodText);
-
-                console.log('AI Result:', foodInfo);
-
+                // ── Step 2: บันทึกลง GitHub ──
+                // ✅ FIX: ไม่ fetch GitHub ซ้ำ — ใช้ globalHistory + latestFileSha ที่โหลดมาแล้ว
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
 
                 const newItem = {
-                    id: Date.now(),
-                    model: foodInfo._model,
-                    aiItems: foodInfo.items || [],
-                    date: document.getElementById('selectedDate').value || getTodayDate(),
-                    time: new Date().toLocaleTimeString('th-TH', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }),
-                    menu: foodText,
+                    id:       Date.now(),
+                    date:     document.getElementById('selectedDate').value || getTodayDate(),
+                    time:     new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                    menu:     foodText,
                     calories: Number(foodInfo.total_calories || 0),
-                    protein: Number(foodInfo.total_protein || 0)
+                    protein:  Number(foodInfo.total_protein  || 0)
                 };
 
                 const newHistory = [newItem, ...globalHistory];
-
                 await commitToGitHub(newHistory, `🍱 เพิ่มบันทึกอาหาร: ${foodText}`);
 
+                // ── สำเร็จ → อัปเดต UI ──
                 globalHistory = newHistory;
-
                 document.getElementById('foodInput').value = '';
                 displayHistory(globalHistory);
-
-                showStatus(
-                    `✅ ${foodInfo._model} | +${newItem.calories} kcal · +${newItem.protein} g protein`,
-                    'success'
-                );
+                showStatus(`✅ บันทึกสำเร็จ! ${foodInfo.total_calories} kcal · ${foodInfo.total_protein} g protein`, 'success');
 
             } catch (err) {
                 console.error('analyzeAndSave error:', err);
-                showStatus(`❌ เกิดข้อผิดพลาด: ${err.message}`, 'error');
 
+                // แปล error code ให้อ่านง่าย
+                let userMsg = err.message;
+                if (err.message.startsWith('GEMINI_429')) userMsg = '⚠️ Gemini ติด Rate Limit — รอสักครู่แล้วลองใหม่';
+                else if (err.message.startsWith('GEMINI_403')) userMsg = '⚠️ Gemini API Key ไม่มีสิทธิ์ใช้ model นี้ — ตรวจสอบที่ aistudio.google.com';
+                else if (err.message.startsWith('GEMINI_404')) userMsg = '⚠️ ไม่พบ Gemini model — ตรวจสอบว่าเปิดใช้ Gemini API แล้ว';
+                else if (err.message.startsWith('GH_401'))     userMsg = '⚠️ GitHub Token ไม่ถูกต้อง หรือหมดอายุ — ขอ token ใหม่';
+                else if (err.message.startsWith('GH_403'))     userMsg = '⚠️ GitHub Token ไม่มีสิทธิ์ write — ติ๊ก scope "repo" ตอนสร้าง token';
+
+                showStatus(userMsg, 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
             }
         }
 
+        // ─── ลบรายการ ────────────────────────────────────────────────────────────
         async function deleteFoodItem(id) {
             if (!confirm('ลบรายการอาหารนี้ใช่ไหมครับ?')) return;
-
             showStatus('⏳ กำลังลบ…', 'info');
-
             try {
                 const newHistory = normalizeHistory(globalHistory).filter(item => String(item.id) !== String(id));
-
                 await commitToGitHub(newHistory, '🗑️ ลบรายการอาหาร');
-
                 globalHistory = newHistory;
                 displayHistory(globalHistory);
-
                 showStatus('✅ ลบสำเร็จ', 'success');
-
             } catch (err) {
                 console.error('delete error:', err);
                 showStatus('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
             }
         }
 
+        // ─── Display ─────────────────────────────────────────────────────────────
         function displayHistory(history) {
-            const listContainer = document.getElementById('historyList');
-            const selectedDate = document.getElementById('selectedDate').value || getTodayDate();
-            const safeHistory = normalizeHistory(history);
-            const dayItems = safeHistory.filter(item => item.date === selectedDate);
-
-            let totalCalToday = 0;
+            const listContainer  = document.getElementById('historyList');
+            const selectedDate   = document.getElementById('selectedDate').value || getTodayDate();
+            const safeHistory    = normalizeHistory(history);
+            const dayItems       = safeHistory.filter(item => item.date === selectedDate);
+            let totalCalToday    = 0;
             let totalProteinToday = 0;
 
             if (dayItems.length === 0) {
@@ -580,37 +500,30 @@
             }
 
             let html = '';
-
             dayItems.forEach(item => {
-                totalCalToday += item.calories;
+                totalCalToday     += item.calories;
                 totalProteinToday += item.protein;
-
                 html += `
                     <div class="flex justify-between items-center gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
                         <div class="max-w-[62%]">
                             <p class="font-medium text-gray-900 truncate">${escapeHtml(item.menu)}</p>
                             <span class="text-[9px] text-gray-400">📅 ${item.date} · ⏱️ ${item.time}</span>
-                            ${item.model ? `<div class="text-[9px] text-indigo-400 mt-0.5">🤖 ${escapeHtml(item.model)}</div>` : ''}
                         </div>
-
                         <div class="text-right">
                             <p class="font-bold text-orange-600">+${item.calories} kcal</p>
                             <p class="text-[10px] font-semibold text-green-600">+${item.protein} g</p>
                         </div>
-
                         <button onclick="deleteFoodItem('${item.id}')" class="text-red-500 text-lg px-1" title="ลบรายการ">×</button>
-                    </div>
-                `;
+                    </div>`;
             });
 
             listContainer.innerHTML = html;
-
             updateDashboardValues(totalCalToday, totalProteinToday);
             updateWeekSummary(safeHistory);
         }
 
         function updateDashboardValues(totalCal, totalProtein) {
-            document.getElementById('dayCal').innerText = `${totalCal} kcal`;
+            document.getElementById('dayCal').innerText    = `${totalCal} kcal`;
             document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
 
             let percent = Math.min((totalCal / globalTDEE) * 100, 100);
@@ -620,46 +533,40 @@
             progressBar.style.width = `${percent}%`;
 
             const statusBox = document.getElementById('tdeeStatus');
-            const diff = globalTDEE - totalCal;
+            const diff      = globalTDEE - totalCal;
 
             if (diff > 500) {
                 progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900';
-
+                statusBox.innerHTML   = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
+                statusBox.className   = 'text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900';
             } else if (diff >= 0) {
                 progressBar.className = 'bg-green-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🟢 Calorie Deficit กำลังดี เหลืออีก <span class="font-bold text-green-400">${diff} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900';
-
+                statusBox.innerHTML   = `🟢 Calorie Deficit กำลังดี เหลืออีก <span class="font-bold text-green-400">${diff} kcal</span>`;
+                statusBox.className   = 'text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900';
             } else {
                 progressBar.className = 'bg-orange-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
+                statusBox.innerHTML   = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
+                statusBox.className   = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
             }
 
-            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
-            const proteinBar = document.getElementById('proteinBar');
-            const proteinStatus = document.getElementById('proteinStatus');
-
-            let proteinPercent = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
+            const proteinGoal    = Number(document.getElementById('proteinGoal').value || 0);
+            const proteinBar     = document.getElementById('proteinBar');
+            const proteinStatus  = document.getElementById('proteinStatus');
+            let proteinPercent   = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
             if (!isFinite(proteinPercent)) proteinPercent = 0;
-
             proteinBar.style.width = `${proteinPercent}%`;
 
             const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
-
             proteinStatus.innerHTML = proteinLeft > 0
                 ? `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span> จากเป้าหมาย ${proteinGoal} g`
                 : `💪 โปรตีนถึงเป้าหมายแล้ว (${totalProtein}/${proteinGoal} g)`;
         }
 
         function updateWeekSummary(history) {
-            const box = document.getElementById('weekSummary');
+            const box         = document.getElementById('weekSummary');
             const safeHistory = normalizeHistory(history);
-            const today = new Date(getTodayDate());
-
-            const dates = Array.from({ length: 7 }, (_, i) => {
+            const today       = new Date(getTodayDate());
+            const dates       = Array.from({ length: 7 }, (_, i) => {
                 const d = new Date(today);
                 d.setDate(today.getDate() - (6 - i));
                 return d.toISOString().slice(0, 10);
@@ -667,55 +574,34 @@
 
             const totals = dates.map(date => {
                 const items = safeHistory.filter(item => item.date === date);
-
                 return {
                     date,
                     calories: items.reduce((s, item) => s + Number(item.calories || 0), 0),
-                    protein: items.reduce((s, item) => s + Number(item.protein || 0), 0)
+                    protein:  items.reduce((s, item) => s + Number(item.protein  || 0), 0)
                 };
             });
 
-            const daysWithData = totals.filter(d => d.calories > 0 || d.protein > 0);
-            const avgCal = daysWithData.length
-                ? Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length)
-                : 0;
-
-            const avgProtein = daysWithData.length
-                ? Math.round(daysWithData.reduce((s, d) => s + d.protein, 0) / daysWithData.length)
-                : 0;
-
-            const overTdeeDays = totals.filter(d => d.calories > globalTDEE).length;
+            const daysWithData  = totals.filter(d => d.calories > 0 || d.protein > 0);
+            const avgCal        = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length) : 0;
+            const avgProtein    = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein,  0) / daysWithData.length) : 0;
+            const overTdeeDays  = totals.filter(d => d.calories > globalTDEE).length;
             const underTdeeDays = totals.filter(d => d.calories > 0 && d.calories <= globalTDEE).length;
 
             const dayRows = totals.map(d => {
-                const label = new Date(d.date).toLocaleDateString('th-TH', {
-                    weekday: 'short',
-                    day: '2-digit',
-                    month: 'short'
-                });
-
-                const hasData = d.calories > 0 || d.protein > 0;
-
-                const status = !hasData
+                const label    = new Date(d.date).toLocaleDateString('th-TH', { weekday: 'short', day: '2-digit', month: 'short' });
+                const hasData  = d.calories > 0 || d.protein > 0;
+                const status   = !hasData
                     ? '<span class="text-gray-400">ยังไม่มีข้อมูล</span>'
                     : d.calories > globalTDEE
                         ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>'
                         : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
-
                 return `
                     <div class="flex items-center justify-between gap-2 py-1.5 border-b border-indigo-100 last:border-b-0">
                         <div class="w-[34%] font-medium text-indigo-950">${label}</div>
-                        <div class="w-[30%] text-right">
-                            <span class="font-bold text-orange-600">${d.calories}</span>
-                            <span class="text-[10px] text-indigo-500">kcal</span>
-                        </div>
-                        <div class="w-[22%] text-right">
-                            <span class="font-bold text-green-700">${d.protein}</span>
-                            <span class="text-[10px] text-indigo-500">g</span>
-                        </div>
+                        <div class="w-[30%] text-right"><span class="font-bold text-orange-600">${d.calories}</span> <span class="text-[10px] text-indigo-500">kcal</span></div>
+                        <div class="w-[22%] text-right"><span class="font-bold text-green-700">${d.protein}</span> <span class="text-[10px] text-indigo-500">g</span></div>
                         <div class="w-[14%] text-right text-[10px]">${status}</div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
 
             box.innerHTML = `
@@ -725,53 +611,38 @@
                         <div class="text-base font-bold text-orange-600">${avgCal}</div>
                         <div class="text-[10px] text-indigo-500">kcal/วัน</div>
                     </div>
-
                     <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
                         <div class="text-[10px] text-indigo-400">เฉลี่ยโปรตีน</div>
                         <div class="text-base font-bold text-green-700">${avgProtein}</div>
                         <div class="text-[10px] text-indigo-500">g/วัน</div>
                     </div>
-
                     <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
                         <div class="text-[10px] text-indigo-400">เกิน TDEE</div>
                         <div class="text-base font-bold text-indigo-800">${overTdeeDays}</div>
                         <div class="text-[10px] text-indigo-500">วัน / 7 วัน</div>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between bg-white rounded-xl border border-indigo-100 px-3 py-2 mb-2">
                     <div class="text-[10px] text-indigo-500 leading-relaxed">
                         มีข้อมูล <span class="font-bold text-indigo-800">${daysWithData.length}</span> วัน ·
                         ไม่เกิน TDEE <span class="font-bold text-green-700">${underTdeeDays}</span> วัน ·
                         เกิน TDEE <span class="font-bold text-orange-600">${overTdeeDays}</span> วัน
                     </div>
-
-                    <button id="weekToggleBtn" onclick="toggleWeekDetails()" class="ml-2 shrink-0 bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">
-                        ดูรายละเอียด
-                    </button>
+                    <button id="weekToggleBtn" onclick="toggleWeekDetails()" class="ml-2 shrink-0 bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">ดูรายละเอียด</button>
                 </div>
-
                 <div id="weekDetails" class="hidden bg-white rounded-xl border border-indigo-100 overflow-hidden">
                     <div class="grid grid-cols-4 gap-2 bg-indigo-100 px-2 py-1.5 text-[10px] font-semibold text-indigo-700">
-                        <div>วัน</div>
-                        <div class="text-right">kcal</div>
-                        <div class="text-right">protein</div>
-                        <div class="text-right">สถานะ</div>
+                        <div>วัน</div><div class="text-right">kcal</div><div class="text-right">protein</div><div class="text-right">สถานะ</div>
                     </div>
-
                     <div class="px-2">${dayRows}</div>
-                </div>
-            `;
+                </div>`;
         }
 
         function toggleWeekDetails() {
             const details = document.getElementById('weekDetails');
-            const btn = document.getElementById('weekToggleBtn');
-
+            const btn     = document.getElementById('weekToggleBtn');
             if (!details || !btn) return;
-
             const hidden = details.classList.contains('hidden');
-
             details.classList.toggle('hidden');
             btn.innerText = hidden ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด';
         }
