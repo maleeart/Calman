@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781409787647,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ก๋วยเตี๋ยวเรือ (หมู/เนื้อ)",
+        "calories": 450,
+        "protein": 25
+      }
+    ],
+    "date": "2026-06-14",
+    "time": "11:03",
+    "menu": "ก๋วยเตี๋ยวเรือ",
+    "calories": 450,
+    "protein": 25
+  },
+  {
     "id": 1781409770546,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
