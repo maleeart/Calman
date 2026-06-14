@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Calorie Tracker & TDEE Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="config.js"></script>
 </head>
 <body class="bg-gray-100 p-4 font-sans text-gray-800">
     <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg">
@@ -49,17 +50,6 @@
             </div>
         </details>
 
-        <details class="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200 hidden">
-            <summary class="text-sm font-semibold cursor-pointer text-gray-600">🛠️ ตั้งค่าระบบ Cloud & AI (ทำครั้งแรก)</summary>
-            <div class="space-y-3 mt-3 text-xs">
-                <input type="password" id="geminiKey" placeholder="Gemini API Key" class="w-full p-2 border rounded-lg bg-white">
-                <input type="text" id="ghUser" placeholder="GitHub Username เช่น maleeart" class="w-full p-2 border rounded-lg bg-white">
-                <input type="text" id="ghRepo" placeholder="Repository เช่น Calman" class="w-full p-2 border rounded-lg bg-white">
-                <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-2 border rounded-lg bg-white">
-                <button onclick="saveConfig()" class="w-full bg-gray-800 text-white p-2 rounded-lg font-medium">บันทึกคีย์ระบบลงเครื่อง</button>
-            </div>
-        </details>
-
         <div class="mb-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
             <label class="block text-xs font-semibold text-gray-700 mb-1">📅 วันที่ต้องการดูข้อมูล</label>
             <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="displayHistory(globalHistory)">
@@ -74,12 +64,10 @@
             วิเคราะห์และอัปเดตลงฐานข้อมูล
         </button>
 
-        <!-- Status bar แสดงสถานะ real-time -->
         <div id="statusBar" class="hidden mb-4 text-xs text-center py-2 px-3 rounded-xl"></div>
 
         <div class="bg-gray-900 text-white p-5 rounded-2xl mb-6 shadow-inner">
             <h2 class="text-sm font-bold text-gray-400 mb-3 text-center uppercase tracking-wider">สรุปสถานะพลังงานของวันที่เลือก</h2>
-
             <div class="flex justify-around text-center mb-4">
                 <div>
                     <div class="text-[11px] text-gray-400">กินไปแล้ว</div>
@@ -91,12 +79,10 @@
                     <div id="dayProtein" class="text-xl font-bold text-green-400">0 กรัม</div>
                 </div>
             </div>
-
             <div class="text-[11px] text-gray-400 mb-1">Calories vs TDEE</div>
             <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
                 <div id="progressBar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
             </div>
-
             <div class="text-[11px] text-gray-400 mb-1">Protein Goal</div>
             <div class="w-full bg-gray-700 h-3 rounded-full overflow-hidden mb-3">
                 <div id="proteinBar" class="bg-green-500 h-full transition-all duration-500" style="width: 0%"></div>
@@ -125,30 +111,27 @@
     <script>
         let globalTDEE = 2300;
         let globalHistory = [];
-        let latestFileSha = null;  // ← SHA จาก GitHub เก็บไว้ใช้ตอน commit (ไม่ fetch ซ้ำ)
+        let latestFileSha = null;
+        const user = "maleeart";
+        const repo = "Calman";
 
-        // ─── Utility ────────────────────────────────────────────────────────────
+        // ─── Utilities ───────────────────────────────────────────────────────────
         function getTodayDate() {
             const d = new Date();
             d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
             return d.toISOString().slice(0, 10);
         }
-
         function utf8ToBase64(str) {
             return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
         }
-
         function base64ToUtf8(str) {
             return new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0)));
         }
-
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.innerText = text;
             return div.innerHTML;
         }
-
-        // แสดง status bar พร้อม style
         function showStatus(msg, type = 'info') {
             const bar = document.getElementById('statusBar');
             const styles = {
@@ -162,16 +145,13 @@
             bar.classList.remove('hidden');
             if (type === 'success') setTimeout(() => bar.classList.add('hidden'), 4000);
         }
-
         function hideStatus() {
             document.getElementById('statusBar').classList.add('hidden');
         }
 
-        // ─── Config ──────────────────────────────────────────────────────────────
+        // ─── Init ────────────────────────────────────────────────────────────────
         window.onload = function () {
-            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken',
-                                'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
-            configKeys.forEach(k => {
+            ['userWeight','userHeight','userAge','userActivity','proteinGoal'].forEach(k => {
                 const el = document.getElementById(k);
                 if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
             });
@@ -179,15 +159,6 @@
             calculateTDEE();
             fetchDataFromGitHub();
         };
-
-        function saveConfig() {
-            const configKeys = ['geminiKey', 'ghUser', 'ghRepo', 'ghToken',
-                                'userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
-            configKeys.forEach(k => localStorage.setItem(k, document.getElementById(k).value.trim()));
-            alert('บันทึกการตั้งค่าระบบเรียบร้อยครับ!');
-            calculateTDEE();
-            fetchDataFromGitHub();
-        }
 
         function calculateTDEE() {
             const w   = Number(document.getElementById('userWeight').value);
@@ -211,6 +182,8 @@
             if (!Array.isArray(history)) return [];
             return history.map(item => ({
                 id:       item.id       || Date.now() + Math.random(),
+                model:    item.model    || '',
+                aiItems:  Array.isArray(item.aiItems) ? item.aiItems : [],
                 date:     item.date     || getTodayDate(),
                 time:     item.time     || '-',
                 menu:     item.menu     || '-',
@@ -219,220 +192,259 @@
             }));
         }
 
-        // ─── GitHub helpers ──────────────────────────────────────────────────────
-
-        // คืนค่า headers พร้อม token เสมอ (fix: เดิม fetchDataFromGitHub ไม่ใส่ token)
+        // ─── GitHub ──────────────────────────────────────────────────────────────
         function ghHeaders() {
-            const token = document.getElementById('ghToken').value.trim()
-                       || localStorage.getItem('ghToken') || '';
-            return token ? { 'Authorization': `token ${token}` } : {};
+            const token = typeof CONFIG !== 'undefined' ? CONFIG.getGH() : '';
+            return token
+                ? { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+                : { 'Accept': 'application/vnd.github+json' };
         }
-
         function ghUrl() {
-            const user = document.getElementById('ghUser').value.trim();
-            const repo = document.getElementById('ghRepo').value.trim();
             return `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
         }
 
-        // ─── โหลดข้อมูลจาก GitHub (ครั้งเดียวตอน load) ─────────────────────────
         async function fetchDataFromGitHub() {
-            const user = document.getElementById('ghUser').value.trim();
-            const repo = document.getElementById('ghRepo').value.trim();
-            if (!user || !repo) {
-                document.getElementById('historyList').innerHTML =
-                    '<p class="text-sm text-gray-400 text-center py-4">กรุณาตั้งค่าข้อมูล Cloud ในส่วนที่ 2 ก่อน</p>';
-                return;
-            }
-
-            showStatus('⏳ กำลังโหลดข้อมูลจาก GitHub…', 'info');
+            showStatus('⏳ กำลังโหลดประวัติข้อมูลจาก GitHub…', 'info');
             try {
-                // ✅ FIX: ใส่ token ตอน GET ด้วย → ได้ limit 5,000 req/hr แทน 60 req/hr
                 const res = await fetch(`${ghUrl()}?t=${Date.now()}`, { headers: ghHeaders() });
-
-                if (res.status === 401) {
-                    showStatus('❌ GitHub Token ไม่ถูกต้อง หรือหมดอายุ', 'error');
-                    return;
-                }
-                if (res.status === 403) {
-                    const remaining = res.headers.get('X-RateLimit-Remaining');
-                    const reset = res.headers.get('X-RateLimit-Reset');
-                    const resetTime = reset ? new Date(Number(reset) * 1000).toLocaleTimeString('th-TH') : '?';
-                    showStatus(`⚠️ GitHub Rate Limit (เหลือ ${remaining} req) รีเซ็ต ${resetTime}`, 'warning');
-                    return;
-                }
-                if (!res.ok) {
+                if (res.status === 401) { showStatus('❌ GitHub Token ไม่ถูกต้อง', 'error'); return; }
+                if (res.status === 404) {
                     globalHistory = []; latestFileSha = null;
                     document.getElementById('historyList').innerHTML =
-                        '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json</p>';
-                    updateDashboardValues(0, 0);
-                    updateWeekSummary([]);
-                    hideStatus();
-                    return;
+                        '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json ระบบจะสร้างให้เมื่อบันทึกครั้งแรก</p>';
+                    updateDashboardValues(0, 0); updateWeekSummary([]); hideStatus(); return;
                 }
-
+                if (!res.ok) throw new Error(`GH_LOAD_${res.status}`);
                 const fileData = await res.json();
-                latestFileSha  = fileData.sha;   // ← เก็บ SHA ไว้ใช้ตอน commit
-                globalHistory  = normalizeHistory(
-                    JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')))
-                );
+                latestFileSha = fileData.sha;
+                globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, ''))));
                 displayHistory(globalHistory);
                 hideStatus();
-
             } catch (e) {
                 console.error('fetchDataFromGitHub error:', e);
                 showStatus('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 'error');
             }
         }
 
-        // ─── Gemini call (พร้อม retry 1 ครั้ง) ──────────────────────────────────
-        async function callGemini(foodText, geminiKey, attempt = 1) {
-            // ── Prompt: แยกประเภทอาหารชัดเจน ──
-            const prompt = `คุณคือผู้เชี่ยวชาญโภชนาการ วิเคราะห์แคลอรีและโปรตีนของอาหารต่อไปนี้ให้แม่นยำที่สุด:
-"${foodText}"
-
-กฎ:
-- ถ้าเป็นสินค้าสำเร็จรูป/แบรนด์ (เช่น Wall, Yakoo, Lay's, โอรีโอ, มาม่า ฯลฯ): ให้ค้นหาข้อมูลโภชนาการจริงจาก label หรือเว็บไซต์อย่างเป็นทางการ
-- ถ้าเป็นอาหารทั่วไป (ข้าว, ไข่ดาว, ผัดกะเพรา ฯลฯ): ประมาณจากฐานข้อมูลมาตรฐาน USDA หรือ ThaiFCD
-- คำนวณตามปริมาณที่ระบุ (เช่น "1 แท่ง" "2 ฟอง" "1 ถ้วย")
-
-ตอบเฉพาะ JSON นี้เท่านั้น ห้ามมีข้อความอื่นหรือ markdown:
-{"total_calories": ตัวเลข, "total_protein": ตัวเลข}`;
-
-            const res = await fetch(
-                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-goog-api-key': geminiKey },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        // ✅ Google Search Grounding: ให้ Gemini ค้น Google จริงๆ
-                        // → แม่นกับสินค้าแบรนด์ไทย เพราะดึงข้อมูลจากเว็บโดยตรง
-                        tools: [{ google_search: {} }],
-                        generationConfig: { temperature: 0.1 }   // ลด randomness → ตัวเลขเพี้ยนน้อยลง
-                    })
-                }
-            );
-
-            // ── Error handling ──
-            if (res.status === 429) {
-                const retryAfter = res.headers.get('Retry-After') || 60;
-                if (attempt === 1) {
-                    showStatus(`⏳ Gemini Rate Limit → รอ ${retryAfter}s แล้ว retry…`, 'warning');
-                    await new Promise(r => setTimeout(r, Number(retryAfter) * 1000));
-                    return callGemini(foodText, geminiKey, 2);
-                }
-                throw new Error(`GEMINI_429: ติด Rate Limit (${retryAfter}s) — ลองใหม่ภายหลัง`);
-            }
-            if (res.status === 400) throw new Error('GEMINI_400: prompt ผิดพลาด หรือ Search Grounding ไม่รองรับ key นี้');
-            if (res.status === 403) throw new Error('GEMINI_403: API Key ไม่มีสิทธิ์ใช้ model นี้');
-            if (res.status === 404) throw new Error('GEMINI_404: ไม่พบ model');
-            if (!res.ok)            throw new Error(`GEMINI_${res.status}: ${res.statusText}`);
-
-            const data = await res.json();
-            console.log('Gemini raw response:', JSON.stringify(data, null, 2));
-
-            // ── Parse: รองรับทั้ง response ปกติ และ grounding response ──
-            // เมื่อใช้ Search Grounding parts อาจมีหลาย element → หาแค่ที่เป็น text
-            const parts = data.candidates?.[0]?.content?.parts || [];
-            const textPart = parts.find(p => p.text)?.text;
-
-            if (!textPart) {
-                const reason = data.candidates?.[0]?.finishReason
-                            || data.promptFeedback?.blockReason || 'unknown';
-                throw new Error(`GEMINI_NO_CONTENT: finishReason=${reason}`);
-            }
-
-            // ดึงเฉพาะ JSON ออกมา (กัน grounding metadata หลุดเข้ามา)
-            const jsonMatch = textPart.match(/\{[^{}]*"total_calories"[^{}]*\}/);
-            if (!jsonMatch) {
-                // fallback: ลองหา JSON ทั่วไป
-                const anyJson = textPart.match(/\{[\s\S]*?\}/);
-                if (anyJson) {
-                    try { return JSON.parse(anyJson[0]); } catch {}
-                }
-                throw new Error(`GEMINI_PARSE: ไม่พบ JSON ใน response → "${textPart.slice(0, 100)}"`);
-            }
-            try {
-                return JSON.parse(jsonMatch[0]);
-            } catch {
-                throw new Error(`GEMINI_PARSE: parse ไม่ได้ → "${jsonMatch[0]}"`);
-            }
-        }
-
-        // ─── Commit ไปยัง GitHub (พร้อม retry กรณี SHA เก่า) ───────────────────
         async function commitToGitHub(newHistory, message, attempt = 1) {
-            const url    = ghUrl();
-            const sha    = latestFileSha;
-            const body   = {
-                message,
-                content: utf8ToBase64(JSON.stringify(newHistory, null, 2)),
-                ...(sha ? { sha } : {})
-            };
-
+            const url = ghUrl();
             const res = await fetch(url, {
                 method: 'PUT',
                 headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify({
+                    message,
+                    content: utf8ToBase64(JSON.stringify(newHistory, null, 2)),
+                    ...(latestFileSha ? { sha: latestFileSha } : {})
+                })
             });
-
-            if (res.status === 409 || res.status === 422) {
-                // SHA conflict → re-fetch SHA แล้วลองใหม่ 1 ครั้ง
-                if (attempt === 1) {
-                    showStatus('⏳ SHA conflict → ดึง SHA ใหม่แล้ว retry…', 'warning');
-                    const fileRes = await fetch(`${url}?t=${Date.now()}`, { headers: ghHeaders() });
-                    if (!fileRes.ok) throw new Error(`GH_SHA_FETCH_FAIL: ${fileRes.status}`);
-                    const fileData = await fileRes.json();
-                    latestFileSha = fileData.sha;
-
-                    // Merge: เอา history ที่ server มี + item ใหม่ที่เราเพิ่ม (item แรกใน newHistory)
-                    const serverHistory = normalizeHistory(
-                        JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, '')))
-                    );
-                    const mergedHistory = [newHistory[0], ...serverHistory];
-                    return commitToGitHub(mergedHistory, message, 2);
-                }
-                throw new Error('GH_CONFLICT: อัปเดต SHA ซ้ำแล้วยังชนกัน');
-            }
             if (res.status === 401) throw new Error('GH_401: GitHub Token ไม่ถูกต้อง');
-            if (res.status === 403) throw new Error('GH_403: ไม่มีสิทธิ์ write ไปยัง repo นี้');
+            if (res.status === 403) throw new Error('GH_403: ไม่มีสิทธิ์เขียนไฟล์');
+            if ((res.status === 409 || res.status === 422) && attempt === 1) {
+                showStatus('⏳ ดึง SHA ใหม่แล้ว retry…', 'warning');
+                const fileRes = await fetch(`${url}?t=${Date.now()}`, { headers: ghHeaders() });
+                if (!fileRes.ok) throw new Error(`GH_SHA_FETCH_FAIL: ${fileRes.status}`);
+                const fileData = await fileRes.json();
+                latestFileSha = fileData.sha;
+                const serverHistory = normalizeHistory(JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, ''))));
+                return commitToGitHub([newHistory[0], ...serverHistory], message, 2);
+            }
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(`GH_${res.status}: ${err.message || res.statusText}`);
             }
-
             const commitData = await res.json();
-            latestFileSha  = commitData.content.sha;   // ← อัปเดต SHA ที่เก็บไว้
+            latestFileSha = commitData.content.sha;
             return commitData;
         }
 
-        // ─── Main: วิเคราะห์ + บันทึก ────────────────────────────────────────────
-        async function analyzeAndSave() {
-            const geminiKey = document.getElementById('geminiKey').value.trim();
-            const user      = document.getElementById('ghUser').value.trim();
-            const repo      = document.getElementById('ghRepo').value.trim();
-            const token     = document.getElementById('ghToken').value.trim();
-            const foodText  = document.getElementById('foodInput').value.trim();
-            const btn       = document.getElementById('submitBtn');
+        // ─── AI: callOpenRouter ───────────────────────────────────────────────────
+        //
+        // MODEL LIST (เรียงตามลำดับความสำคัญ):
+        //
+        // 1. perplexity/sonar         → ค้นเว็บจริง ✅  แม่นสำหรับสินค้าแบรนด์
+        // 2. deepseek/deepseek-v3     → ฉลาด ถูก ดีสำหรับอาหารทั่วไป
+        // 3. google/gemini-2.5-flash  → fallback เร็ว
+        // 4. meta-llama/llama-3.3-70b-instruct:free → free fallback ไม่มีค่าใช้จ่าย
+        //
+        // ถ้าเครดิตหมด → โดดข้าม 1-3 แล้วไปใช้ตัวฟรีโดยอัตโนมัติ
+        //
+        async function callOpenRouter(foodText) {
+            const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
+            if (!apiKey) throw new Error('OPENROUTER_KEY_MISSING: ไม่พบ OpenRouter API Key ใน config.js');
 
-            if (!geminiKey || !user || !repo || !token || !foodText) {
-                return alert('กรุณากรอกข้อมูลตั้งค่าระบบและชื่ออาหารให้ครบถ้วนก่อนครับ');
+            // ── Model list ──────────────────────────────────────────────────────
+            const MODELS = [
+                {
+                    id: "perplexity/sonar",
+                    // ✅ ค้นเว็บจริง → แม่นสินค้าแบรนด์ เช่น Wall Yakoo, Lay's
+                    // ~$0.0002/req บวก $0.001/search → ราคาถูกมาก
+                    useSearch: true
+                },
+                {
+                    id: "deepseek/deepseek-v3-0324",
+                    // ฉลาด ตามคำสั่ง JSON ได้ดี ราคาถูก
+                    useSearch: false
+                },
+                {
+                    id: "google/gemini-2.5-flash-lite-preview-06-17",
+                    // เร็ว ถูก ดีพอสำหรับอาหารทั่วไป
+                    useSearch: false
+                },
+                {
+                    id: "meta-llama/llama-3.3-70b-instruct:free",
+                    // ฟรี 100% → ใช้ตอนเครดิตหมด ไม่เสียเงินเลย
+                    useSearch: false
+                }
+            ];
+
+            // ── Prompt ─────────────────────────────────────────────────────────
+            // prompt เดียวกันทุก model แต่ sonar จะค้นเว็บเพิ่มเติมเอง
+            const prompt = `คุณเป็นนักโภชนาการผู้เชี่ยวชาญอาหารไทย
+
+วิเคราะห์แคลอรีและโปรตีนของรายการอาหารต่อไปนี้:
+"${foodText}"
+
+กฎสำคัญ:
+- สินค้าสำเร็จรูป/แบรนด์ (Wall, Yakoo, มาม่า, Lay's ฯลฯ): ใช้ข้อมูลโภชนาการจริงจากฉลากผลิตภัณฑ์
+- อาหารทั่วไป: ประมาณจากมาตรฐานอาหารไทย ปริมาณ 1 จานทั่วไป
+- คำนวณตามจำนวนที่ระบุ (1 แท่ง, 2 ฟอง ฯลฯ)
+- ห้ามประเมินสูงเกินจริง
+- ถ้ามีหลายรายการให้แยกคำนวณทีละรายการ
+
+ตอบเป็น JSON เท่านั้น ห้าม markdown ห้ามคำอธิบาย:
+{"items":[{"name":"ชื่อ","calories":0,"protein":0}],"total_calories":0,"total_protein":0}`;
+
+            let lastError = null;
+
+            for (const model of MODELS) {
+                try {
+                    console.log(`[OpenRouter] Trying: ${model.id}`);
+                    showStatus(`🤖 กำลังวิเคราะห์ด้วย ${model.id.split('/')[1]}…`, 'info');
+
+                    const body = {
+                        model: model.id,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a nutrition expert. Reply ONLY with valid JSON. No markdown, no explanation.'
+                            },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.1,
+                        max_tokens: 600
+                    };
+
+                    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                            'HTTP-Referer': 'https://maleeart.github.io/Calman/',
+                            'X-Title': 'Calman'
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    // ── Error handling per status code ────────────────────────
+                    if (!res.ok) {
+                        const errMsg = data?.error?.message || res.statusText || '';
+                        console.warn(`[OpenRouter] ${model.id} → HTTP ${res.status}:`, errMsg);
+
+                        if (res.status === 401) {
+                            // Key ผิด → หยุดเลย ไม่ต้องลอง model อื่น
+                            throw new Error('OPENROUTER_401: API Key ไม่ถูกต้อง — ตรวจสอบใน config.js');
+                        }
+                        if (res.status === 402) {
+                            // เครดิตหมด → ข้ามไป model ฟรีถัดไป
+                            console.warn(`[OpenRouter] เครดิตหมดสำหรับ ${model.id} → ลอง model ถัดไป`);
+                            lastError = new Error(`CREDIT_${model.id}: เครดิตไม่พอ`);
+                            continue;
+                        }
+                        if (res.status === 429) {
+                            // Rate limit → รอ แล้วลอง model ถัดไป
+                            const wait = Number(res.headers?.get('Retry-After') || 5);
+                            console.warn(`[OpenRouter] Rate limit ${model.id} → รอ ${wait}s`);
+                            await new Promise(r => setTimeout(r, wait * 1000));
+                            lastError = new Error(`RATELIMIT_${model.id}`);
+                            continue;
+                        }
+                        if (res.status === 404 || res.status >= 500) {
+                            // Model ไม่พร้อม → ลอง model ถัดไป
+                            lastError = new Error(`MODEL_UNAVAIL_${model.id}_${res.status}`);
+                            continue;
+                        }
+                        // Error อื่นๆ → ลอง model ถัดไป
+                        lastError = new Error(`OPENROUTER_${res.status}_${model.id}: ${errMsg}`);
+                        continue;
+                    }
+
+                    // ── Parse response ───────────────────────────────────────
+                    const rawText = data?.choices?.[0]?.message?.content || '';
+                    if (!rawText) {
+                        lastError = new Error(`EMPTY_RESPONSE_${model.id}`);
+                        continue;
+                    }
+
+                    const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+                    // หา JSON block ใน response (กัน sonar ที่อาจมีข้อความนำหน้า)
+                    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        console.warn(`[OpenRouter] ไม่พบ JSON ใน response:`, rawText.slice(0, 100));
+                        lastError = new Error(`NO_JSON_${model.id}`);
+                        continue;
+                    }
+
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    console.log(`[OpenRouter] ✅ ${model.id} สำเร็จ:`, parsed);
+
+                    return {
+                        items:          Array.isArray(parsed.items) ? parsed.items : [],
+                        total_calories: Number(parsed.total_calories || 0),
+                        total_protein:  Number(parsed.total_protein  || 0),
+                        _model:         model.id
+                    };
+
+                } catch (err) {
+                    // ถ้าเป็น error ที่ throw จากข้างใน (401) → re-throw เลย
+                    if (err.message.startsWith('OPENROUTER_401')) throw err;
+                    console.error(`[OpenRouter] Error on ${model.id}:`, err.message);
+                    lastError = err;
+                    continue;
+                }
             }
 
+            // ทุก model ล้มเหลว
+            const isCreditError = lastError?.message?.startsWith('CREDIT_');
+            throw new Error(
+                isCreditError
+                    ? 'เครดิต OpenRouter หมดทุก model — เติมเครดิตที่ openrouter.ai/credits'
+                    : `ไม่มี model ที่ใช้งานได้: ${lastError?.message || 'unknown'}`
+            );
+        }
+
+        // ─── Main ────────────────────────────────────────────────────────────────
+        async function analyzeAndSave() {
+            const foodText = document.getElementById('foodInput').value.trim();
+            const btn = document.getElementById('submitBtn');
+            if (!foodText) { alert('กรุณากรอกชื่ออาหารก่อนครับ'); return; }
+
             btn.disabled = true;
-            btn.innerText = '⏳ AI กำลังวิเคราะห์…';
+            btn.innerText = '⏳ ระบบกำลังวิเคราะห์…';
             hideStatus();
 
             try {
-                // ── Step 1: Gemini วิเคราะห์อาหาร ──
-                showStatus('🤖 Step 1/2 — Gemini กำลังวิเคราะห์แคลอรี…', 'info');
-                const foodInfo = await callGemini(foodText, geminiKey);
+                showStatus('🤖 Step 1/2 — AI กำลังวิเคราะห์อาหาร…', 'info');
+                const foodInfo = await callOpenRouter(foodText);
+                console.log('AI Result:', foodInfo);
 
-                // ── Step 2: บันทึกลง GitHub ──
-                // ✅ FIX: ไม่ fetch GitHub ซ้ำ — ใช้ globalHistory + latestFileSha ที่โหลดมาแล้ว
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
-
                 const newItem = {
                     id:       Date.now(),
+                    model:    foodInfo._model,
+                    aiItems:  foodInfo.items || [],
                     date:     document.getElementById('selectedDate').value || getTodayDate(),
                     time:     new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
                     menu:     foodText,
@@ -443,31 +455,20 @@
                 const newHistory = [newItem, ...globalHistory];
                 await commitToGitHub(newHistory, `🍱 เพิ่มบันทึกอาหาร: ${foodText}`);
 
-                // ── สำเร็จ → อัปเดต UI ──
                 globalHistory = newHistory;
                 document.getElementById('foodInput').value = '';
                 displayHistory(globalHistory);
-                showStatus(`✅ บันทึกสำเร็จ! ${foodInfo.total_calories} kcal · ${foodInfo.total_protein} g protein`, 'success');
+                showStatus(`✅ ${newItem._model || foodInfo._model} | +${newItem.calories} kcal · +${newItem.protein} g`, 'success');
 
             } catch (err) {
                 console.error('analyzeAndSave error:', err);
-
-                // แปล error code ให้อ่านง่าย
-                let userMsg = err.message;
-                if (err.message.startsWith('GEMINI_429')) userMsg = '⚠️ Gemini ติด Rate Limit — รอสักครู่แล้วลองใหม่';
-                else if (err.message.startsWith('GEMINI_403')) userMsg = '⚠️ Gemini API Key ไม่มีสิทธิ์ใช้ model นี้ — ตรวจสอบที่ aistudio.google.com';
-                else if (err.message.startsWith('GEMINI_404')) userMsg = '⚠️ ไม่พบ Gemini model — ตรวจสอบว่าเปิดใช้ Gemini API แล้ว';
-                else if (err.message.startsWith('GH_401'))     userMsg = '⚠️ GitHub Token ไม่ถูกต้อง หรือหมดอายุ — ขอ token ใหม่';
-                else if (err.message.startsWith('GH_403'))     userMsg = '⚠️ GitHub Token ไม่มีสิทธิ์ write — ติ๊ก scope "repo" ตอนสร้าง token';
-
-                showStatus(userMsg, 'error');
+                showStatus(`❌ ${err.message}`, 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerText = 'วิเคราะห์และอัปเดตลงฐานข้อมูล';
             }
         }
 
-        // ─── ลบรายการ ────────────────────────────────────────────────────────────
         async function deleteFoodItem(id) {
             if (!confirm('ลบรายการอาหารนี้ใช่ไหมครับ?')) return;
             showStatus('⏳ กำลังลบ…', 'info');
@@ -485,29 +486,32 @@
 
         // ─── Display ─────────────────────────────────────────────────────────────
         function displayHistory(history) {
-            const listContainer  = document.getElementById('historyList');
-            const selectedDate   = document.getElementById('selectedDate').value || getTodayDate();
-            const safeHistory    = normalizeHistory(history);
-            const dayItems       = safeHistory.filter(item => item.date === selectedDate);
-            let totalCalToday    = 0;
-            let totalProteinToday = 0;
+            const listContainer = document.getElementById('historyList');
+            const selectedDate  = document.getElementById('selectedDate').value || getTodayDate();
+            const safeHistory   = normalizeHistory(history);
+            const dayItems      = safeHistory.filter(item => item.date === selectedDate);
+            let totalCalToday = 0, totalProteinToday = 0;
 
             if (dayItems.length === 0) {
                 listContainer.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีประวัติอาหารในวันที่เลือก</p>';
-                updateDashboardValues(0, 0);
-                updateWeekSummary(safeHistory);
-                return;
+                updateDashboardValues(0, 0); updateWeekSummary(safeHistory); return;
             }
 
             let html = '';
             dayItems.forEach(item => {
                 totalCalToday     += item.calories;
                 totalProteinToday += item.protein;
+                // แสดง breakdown รายการย่อยของ AI (ถ้ามี)
+                const breakdown = Array.isArray(item.aiItems) && item.aiItems.length > 1
+                    ? `<div class="text-[9px] text-gray-400 mt-0.5">${item.aiItems.map(i => `${i.name}: ${i.calories}kcal`).join(' · ')}</div>`
+                    : '';
                 html += `
                     <div class="flex justify-between items-center gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
                         <div class="max-w-[62%]">
                             <p class="font-medium text-gray-900 truncate">${escapeHtml(item.menu)}</p>
                             <span class="text-[9px] text-gray-400">📅 ${item.date} · ⏱️ ${item.time}</span>
+                            ${item.model ? `<div class="text-[9px] text-indigo-400 mt-0.5">🤖 ${escapeHtml(item.model)}</div>` : ''}
+                            ${breakdown}
                         </div>
                         <div class="text-right">
                             <p class="font-bold text-orange-600">+${item.calories} kcal</p>
@@ -516,7 +520,6 @@
                         <button onclick="deleteFoodItem('${item.id}')" class="text-red-500 text-lg px-1" title="ลบรายการ">×</button>
                     </div>`;
             });
-
             listContainer.innerHTML = html;
             updateDashboardValues(totalCalToday, totalProteinToday);
             updateWeekSummary(safeHistory);
@@ -525,16 +528,12 @@
         function updateDashboardValues(totalCal, totalProtein) {
             document.getElementById('dayCal').innerText    = `${totalCal} kcal`;
             document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
-
             let percent = Math.min((totalCal / globalTDEE) * 100, 100);
             if (!isFinite(percent)) percent = 0;
-
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${percent}%`;
-
             const statusBox = document.getElementById('tdeeStatus');
-            const diff      = globalTDEE - totalCal;
-
+            const diff = globalTDEE - totalCal;
             if (diff > 500) {
                 progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
                 statusBox.innerHTML   = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
@@ -548,14 +547,12 @@
                 statusBox.innerHTML   = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
                 statusBox.className   = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
             }
-
-            const proteinGoal    = Number(document.getElementById('proteinGoal').value || 0);
-            const proteinBar     = document.getElementById('proteinBar');
-            const proteinStatus  = document.getElementById('proteinStatus');
-            let proteinPercent   = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
+            const proteinGoal   = Number(document.getElementById('proteinGoal').value || 0);
+            const proteinBar    = document.getElementById('proteinBar');
+            const proteinStatus = document.getElementById('proteinStatus');
+            let proteinPercent  = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
             if (!isFinite(proteinPercent)) proteinPercent = 0;
             proteinBar.style.width = `${proteinPercent}%`;
-
             const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
             proteinStatus.innerHTML = proteinLeft > 0
                 ? `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span> จากเป้าหมาย ${proteinGoal} g`
@@ -563,47 +560,37 @@
         }
 
         function updateWeekSummary(history) {
-            const box         = document.getElementById('weekSummary');
+            const box = document.getElementById('weekSummary');
             const safeHistory = normalizeHistory(history);
-            const today       = new Date(getTodayDate());
-            const dates       = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(today);
-                d.setDate(today.getDate() - (6 - i));
+            const today = new Date(getTodayDate());
+            const dates = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(today); d.setDate(today.getDate() - (6 - i));
                 return d.toISOString().slice(0, 10);
             });
-
             const totals = dates.map(date => {
                 const items = safeHistory.filter(item => item.date === date);
-                return {
-                    date,
-                    calories: items.reduce((s, item) => s + Number(item.calories || 0), 0),
-                    protein:  items.reduce((s, item) => s + Number(item.protein  || 0), 0)
-                };
+                return { date,
+                    calories: items.reduce((s, i) => s + Number(i.calories || 0), 0),
+                    protein:  items.reduce((s, i) => s + Number(i.protein  || 0), 0) };
             });
-
             const daysWithData  = totals.filter(d => d.calories > 0 || d.protein > 0);
-            const avgCal        = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length) : 0;
-            const avgProtein    = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein,  0) / daysWithData.length) : 0;
+            const avgCal        = daysWithData.length ? Math.round(daysWithData.reduce((s,d)=>s+d.calories,0)/daysWithData.length) : 0;
+            const avgProtein    = daysWithData.length ? Math.round(daysWithData.reduce((s,d)=>s+d.protein,0)/daysWithData.length)  : 0;
             const overTdeeDays  = totals.filter(d => d.calories > globalTDEE).length;
             const underTdeeDays = totals.filter(d => d.calories > 0 && d.calories <= globalTDEE).length;
-
             const dayRows = totals.map(d => {
-                const label    = new Date(d.date).toLocaleDateString('th-TH', { weekday: 'short', day: '2-digit', month: 'short' });
-                const hasData  = d.calories > 0 || d.protein > 0;
-                const status   = !hasData
-                    ? '<span class="text-gray-400">ยังไม่มีข้อมูล</span>'
-                    : d.calories > globalTDEE
-                        ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>'
-                        : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
-                return `
-                    <div class="flex items-center justify-between gap-2 py-1.5 border-b border-indigo-100 last:border-b-0">
-                        <div class="w-[34%] font-medium text-indigo-950">${label}</div>
-                        <div class="w-[30%] text-right"><span class="font-bold text-orange-600">${d.calories}</span> <span class="text-[10px] text-indigo-500">kcal</span></div>
-                        <div class="w-[22%] text-right"><span class="font-bold text-green-700">${d.protein}</span> <span class="text-[10px] text-indigo-500">g</span></div>
-                        <div class="w-[14%] text-right text-[10px]">${status}</div>
-                    </div>`;
+                const label   = new Date(d.date).toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short'});
+                const hasData = d.calories > 0 || d.protein > 0;
+                const status  = !hasData ? '<span class="text-gray-400">ยังไม่มีข้อมูล</span>'
+                    : d.calories > globalTDEE ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>'
+                    : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
+                return `<div class="flex items-center justify-between gap-2 py-1.5 border-b border-indigo-100 last:border-b-0">
+                    <div class="w-[34%] font-medium text-indigo-950">${label}</div>
+                    <div class="w-[30%] text-right"><span class="font-bold text-orange-600">${d.calories}</span> <span class="text-[10px] text-indigo-500">kcal</span></div>
+                    <div class="w-[22%] text-right"><span class="font-bold text-green-700">${d.protein}</span> <span class="text-[10px] text-indigo-500">g</span></div>
+                    <div class="w-[14%] text-right text-[10px]">${status}</div>
+                </div>`;
             }).join('');
-
             box.innerHTML = `
                 <div class="grid grid-cols-3 gap-2 mb-3">
                     <div class="bg-white rounded-xl p-2 border border-indigo-100 text-center shadow-sm">
@@ -640,11 +627,10 @@
 
         function toggleWeekDetails() {
             const details = document.getElementById('weekDetails');
-            const btn     = document.getElementById('weekToggleBtn');
+            const btn = document.getElementById('weekToggleBtn');
             if (!details || !btn) return;
-            const hidden = details.classList.contains('hidden');
             details.classList.toggle('hidden');
-            btn.innerText = hidden ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด';
+            btn.innerText = details.classList.contains('hidden') ? 'ดูรายละเอียด' : 'ซ่อนรายละเอียด';
         }
     </script>
 </body>
