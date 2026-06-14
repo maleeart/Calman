@@ -1,21 +1,5 @@
 [
   {
-    "id": 1781425605333,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "ไอติมยักคู่ ครึ่งซอง",
-        "calories": 150,
-        "protein": 2
-      }
-    ],
-    "date": "2026-06-14",
-    "time": "15:26",
-    "menu": "ไอติมยักคู่ ครึ่งซอง",
-    "calories": 150,
-    "protein": 2
-  },
-  {
     "id": 1781409940767,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
