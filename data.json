@@ -1,5 +1,41 @@
 [
   {
+    "id": 1781455085941,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "หมูสามชั้น (ประมาณ 100 กรัม)",
+        "calories": 450,
+        "protein": 15
+      },
+      {
+        "name": "หมูสันคอ (ประมาณ 100 กรัม)",
+        "calories": 250,
+        "protein": 20
+      },
+      {
+        "name": "ผักสดรวม (ประมาณ 200 กรัม)",
+        "calories": 50,
+        "protein": 3
+      },
+      {
+        "name": "น้ำจิ้มหมูกระทะ (ประมาณ 50 กรัม)",
+        "calories": 100,
+        "protein": 2
+      },
+      {
+        "name": "ข้าวสวย (ประมาณ 1 ทัพพี)",
+        "calories": 150,
+        "protein": 3
+      }
+    ],
+    "date": "2026-06-14",
+    "time": "23:38",
+    "menu": "หมูกระทะ",
+    "calories": 1000,
+    "protein": 43
+  },
+  {
     "id": 1781429366985,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
