@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781429311380,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Ferrero Rocher 1 ลูก",
+        "calories": 125,
+        "protein": 2
+      }
+    ],
+    "date": "2026-06-14",
+    "time": "16:28",
+    "menu": "Ferrero rocher 1 ลูก 125/2 kcal",
+    "calories": 125,
+    "protein": 2
+  },
+  {
     "id": 1781429275541,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
