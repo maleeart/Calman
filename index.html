@@ -8,6 +8,7 @@
     <title>AI Calorie Tracker & TDEE Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="config.js"></script>
+    <script src="food_database.js"></script>
 </head>
 
 <body class="bg-gray-100 p-4 font-sans text-gray-800">
@@ -286,6 +287,41 @@
             }
         }
 
+function searchFoodDatabase(foodText) {
+
+    if (typeof FOOD_DB === "undefined") return null;
+
+    const text = foodText.toLowerCase();
+
+    for (const brand in FOOD_DB) {
+
+        if (text.includes(brand.toLowerCase())) {
+
+            const menus = FOOD_DB[brand];
+
+            for (const menu in menus) {
+
+                if (text.includes(menu.toLowerCase())) {
+
+                    const item = menus[menu];
+
+                    return {
+                        items: [{
+                            name: menu,
+                            calories: item.kcal,
+                            protein: item.protein
+                        }],
+                        total_calories: item.kcal,
+                        total_protein: item.protein,
+                        _model: "FoodDB"
+                    };
+                }
+            }
+        }
+    }
+
+    return null;
+}
         async function callOpenRouter(foodText) {
             const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
 
@@ -498,7 +534,11 @@
             try {
                 showStatus('🤖 Step 1/2 — OpenRouter กำลังคำนวณอาหาร…', 'info');
 
-                const foodInfo = await callOpenRouter(foodText);
+                let foodInfo = searchFoodDatabase(foodText);
+
+if (!foodInfo) {
+    foodInfo = await callOpenRouter(foodText);
+}
 
                 console.log('AI Result:', foodInfo);
 
