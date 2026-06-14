@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="config.js"></script>
     <script src="food_database.js"></script>
+<script src="thai_food_database.js"></script>
 </head>
 
 <body class="bg-gray-100 p-4 font-sans text-gray-800">
@@ -319,7 +320,24 @@ function searchFoodDatabase(foodText) {
             }
         }
     }
+for (const menu in THAI_FOOD_DB) {
 
+    if (text.includes(menu.toLowerCase())) {
+
+        const item = THAI_FOOD_DB[menu];
+
+        return {
+            items: [{
+                name: menu,
+                calories: item.kcal,
+                protein: item.protein
+            }],
+            total_calories: item.kcal,
+            total_protein: item.protein,
+            _model: "ThaiFoodDB"
+        };
+    }
+}
     return null;
 }
         async function callOpenRouter(foodText) {
