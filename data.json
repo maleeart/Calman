@@ -1,21 +1,5 @@
 [
   {
-    "id": 1781425685610,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "Wall yakoo ยักษ์คู่ 1แท่ง",
-        "calories": 250,
-        "protein": 3
-      }
-    ],
-    "date": "2026-06-14",
-    "time": "15:28",
-    "menu": "Wall yakoo ยักษ์คู่ 1แท่ง",
-    "calories": 250,
-    "protein": 3
-  },
-  {
     "id": 1781409940767,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
