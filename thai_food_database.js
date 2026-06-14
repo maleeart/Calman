@@ -1,0 +1,21 @@
+const THAI_FOOD_DB = {
+  "ข้าวมันไก่": { kcal: 585, protein: 27 },
+  "ข้าวกะเพราไก่": { kcal: 580, protein: 28 },
+  "ข้าวกะเพราหมู": { kcal: 620, protein: 25 },
+  "ผัดซีอิ๊วหมู": { kcal: 680, protein: 24 },
+  "ผัดไทย": { kcal: 620, protein: 22 },
+  "ส้มตำไทย": { kcal: 120, protein: 3 },
+  "ลาบหมู": { kcal: 280, protein: 25 },
+  "ข้าวไข่เจียว": { kcal: 450, protein: 14 },
+  "ก๋วยเตี๋ยวเรือ": { kcal: 320, protein: 18 },
+  "เย็นตาโฟ": { kcal: 350, protein: 18 },
+  "ข้าวหมูแดง": { kcal: 540, protein: 22 },
+  "ข้าวหมูกรอบ": { kcal: 670, protein: 20 },
+  "ข้าวหน้าเป็ด": { kcal: 620, protein: 23 },
+  "ข้าวผัดหมู": { kcal: 650, protein: 24 },
+  "ข้าวผัดกุ้ง": { kcal: 600, protein: 25 },
+  "ต้มยำกุ้ง": { kcal: 180, protein: 20 },
+  "แกงจืดเต้าหู้หมูสับ": { kcal: 150, protein: 18 },
+  "ไข่ต้ม": { kcal: 70, protein: 6 },
+  "อกไก่": { kcal: 165, protein: 31 }
+};
