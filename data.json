@@ -1,31 +1,5 @@
 [
   {
-    "id": 1781425657249,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "ข้าวผัด (ครึ่งจาน)",
-        "calories": 300,
-        "protein": 10
-      },
-      {
-        "name": "ไก่ทอด (ครึ่งชิ้น)",
-        "calories": 250,
-        "protein": 20
-      },
-      {
-        "name": "ไข่ดาว (1 ฟอง)",
-        "calories": 150,
-        "protein": 6
-      }
-    ],
-    "date": "2026-06-14",
-    "time": "15:27",
-    "menu": "Wall yakoo ยักษ์คู่ ครึ่งเดียว",
-    "calories": 700,
-    "protein": 36
-  },
-  {
     "id": 1781409940767,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
