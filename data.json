@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781528511330,
+    "model": "ThaiFoodDB",
+    "aiItems": [
+      {
+        "name": "ไข่ต้ม",
+        "calories": 70,
+        "protein": 6
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "20:01",
+    "menu": "ไข่ต้ม",
+    "calories": 70,
+    "protein": 6
+  },
+  {
     "id": 1781528500287,
     "model": "ThaiFoodDB",
     "aiItems": [
