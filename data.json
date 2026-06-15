@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781528546091,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "เมล็ดทานตะวัน 1 กำมือ (ประมาณ 30 กรัม)",
+        "calories": 175,
+        "protein": 6
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "20:02",
+    "menu": "เมล็ดทานตะวัน 1 กำมือ",
+    "calories": 175,
+    "protein": 6
+  },
+  {
     "id": 1781528511330,
     "model": "ThaiFoodDB",
     "aiItems": [
