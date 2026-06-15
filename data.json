@@ -1,5 +1,36 @@
 [
   {
+    "id": 1781487184787,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ข้าวโอ๊ต (50 กรัม)",
+        "calories": 190,
+        "protein": 6.5
+      },
+      {
+        "name": "เวย์โปรตีน (1 สกู๊ป)",
+        "calories": 120,
+        "protein": 24
+      },
+      {
+        "name": "ไข่ไก่ (1 ฟอง)",
+        "calories": 70,
+        "protein": 6
+      },
+      {
+        "name": "นมโอ๊ต (50 ml)",
+        "calories": 25,
+        "protein": 0.5
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "08:33",
+    "menu": "ข้าวโอ๊ต 50 กรัม, เวย์ 1 สกู๊ป, ไข่1ฟอง,นมโอ๊ต 50 ml",
+    "calories": 405,
+    "protein": 37
+  },
+  {
     "id": 1781455085941,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
