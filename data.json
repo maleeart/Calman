@@ -1,5 +1,31 @@
 [
   {
+    "id": 1781500041532,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ข้าวสวย (1 ทัพพี)",
+        "calories": 160,
+        "protein": 3
+      },
+      {
+        "name": "พแนงเนื้อ (1 ทัพพี)",
+        "calories": 250,
+        "protein": 15
+      },
+      {
+        "name": "ไก่กระเทียม (1 ทัพพี)",
+        "calories": 200,
+        "protein": 18
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "12:07",
+    "menu": "ข้าวราดแกง2อย่าง (พแนงเนื้อ,ไก่กระเทียม)",
+    "calories": 610,
+    "protein": 36
+  },
+  {
     "id": 1781487207151,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
