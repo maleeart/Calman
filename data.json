@@ -1,31 +1,5 @@
 [
   {
-    "id": 1781499861613,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "ข้าวสวย",
-        "calories": 300,
-        "protein": 5
-      },
-      {
-        "name": "พะแนงเนื้อ",
-        "calories": 450,
-        "protein": 25
-      },
-      {
-        "name": "ไก่กระเทียม",
-        "calories": 350,
-        "protein": 20
-      }
-    ],
-    "date": "2026-06-15",
-    "time": "12:04",
-    "menu": "ข้างราดพะแนงเนื้ิอ+ไก่กระเทียม",
-    "calories": 1100,
-    "protein": 50
-  },
-  {
     "id": 1781487207151,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
