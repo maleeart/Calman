@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781487207151,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "อเมริกาโน่ไม่หวาน (แก้วกลาง)",
+        "calories": 10,
+        "protein": 1
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "08:33",
+    "menu": "อเมริกาโนไม่หวาน",
+    "calories": 10,
+    "protein": 1
+  },
+  {
     "id": 1781487184787,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
