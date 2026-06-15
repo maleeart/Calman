@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781528500287,
+    "model": "ThaiFoodDB",
+    "aiItems": [
+      {
+        "name": "ข้าวหน้าเป็ด",
+        "calories": 620,
+        "protein": 23
+      }
+    ],
+    "date": "2026-06-15",
+    "time": "20:01",
+    "menu": "ข้าวหน้าเป็ด",
+    "calories": 620,
+    "protein": 23
+  },
+  {
     "id": 1781500584701,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
