@@ -1,21 +1,5 @@
 [
   {
-    "id": 1781500465264,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "อโวคาโดปั่นมะพร้าว (ไม่หวาน)",
-        "calories": 350,
-        "protein": 4
-      }
-    ],
-    "date": "2026-06-15",
-    "time": "12:14",
-    "menu": "อโวคาโดปั่นมะพร้าว ไม่หวาน",
-    "calories": 350,
-    "protein": 4
-  },
-  {
     "id": 1781500041532,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
