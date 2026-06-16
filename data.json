@@ -1,5 +1,26 @@
 [
   {
+    "id": 1781585300774,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ข้าวเหนียว (1 ห่อเล็ก)",
+        "calories": 160,
+        "protein": 3
+      },
+      {
+        "name": "หมูปิ้งโบราณ (5 ไม้)",
+        "calories": 350,
+        "protein": 25
+      }
+    ],
+    "date": "2026-06-16",
+    "time": "11:48",
+    "menu": "ข้าวเหนียว,หมูปิ้งโบราณ 5 ไม้",
+    "calories": 510,
+    "protein": 28
+  },
+  {
     "id": 1781574780130,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
