@@ -859,11 +859,13 @@ if (!foodInfo) {
 // ==========================================================================
 // 🍊 STRAVA DYNAMIC TDEE OAUTH INTEGRATION (NO EXPIRATION PROBLEM)
 // ==========================================================================
+// ==========================================================================
+// 🍊 STRAVA DYNAMIC TDEE OAUTH INTEGRATION (FIXED SCOPE ERROR)
+// ==========================================================================
 
-// 1. ใส่ Client ID และ Client Secret จาก Strava Developer Dashboard ของคุณ
 const STRAVA_CLIENT_ID = '247652'; 
 
-// หั่น Client Secret เป็น 2 ท่อนเพื่อความปลอดภัยจากการตรวจจับของ GitHub
+// หั่น Client Secret เป็น 2 ท่อนเพื่อความปลอดภัยจากการตรวจจับของ GitHub ตามเดิม
 const SECRET_PART_A = "5a5b0bf67c4099e7c952";
 const SECRET_PART_B = "a52fca89fc9560c854af";
 
@@ -873,46 +875,55 @@ function getStravaSecret() {
 
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 
-// 2. ฟังก์ชันหลักเมื่อกดปุ่มซิงค์
+// 1. ฟังก์ชันหลักเมื่อกดปุ่มซิงค์ (ปรับแก้การเช็กสิทธิ์และอายุ Token)
 function handleStravaSync() {
     const accessToken = localStorage.getItem('strava_access_token');
     const expiresAt = localStorage.getItem('strava_expires_at');
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // เคสที่ 1: ยังไม่เคยเข้าสู่ระบบ หรือไม่มี Token เลย -> พาไปหน้า Login Strava
+    // เคสที่ 1: ไม่มี Token เลย -> พาไปหน้า Login Strava (เน้นย้ำ Scope: activity:read_all,profile:read_all)
     if (!accessToken) {
-        const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=activity:read_all`;
+        // เพิ่ม scope ให้ครอบคลุมตามที่ Strava ร้องขอในรูปภาพ
+        const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=activity:read,activity:read_all`;
         window.location.href = authUrl;
         return;
     }
 
-    // เคสที่ 2: มี Token แต่หมดอายุแล้ว -> ใช้ Refresh Token ไปแลกอันใหม่ (ถ้ามี) หรือให้ล็อกอินใหม่
+    // เคสที่ 2: มี Token แต่หมดอายุแล้ว -> ใช้ Refresh Token ไปแลกอันใหม่
     if (expiresAt && currentTime > parseInt(expiresAt)) {
         const refreshToken = localStorage.getItem('strava_refresh_token');
         if (refreshToken) {
             refreshStravaToken(refreshToken);
         } else {
-            localStorage.clear(); // ล้างคีย์เก่าแล้วให้กดใหม่
-            alert("เซสชันหมดอายุ กรุณากดซิงค์เพื่อเชื่อมต่อ Strava อีกครั้ง");
+            localStorage.removeItem('strava_access_token');
+            alert("เซสชันหมดอายุ กรุณากดซิงค์เพื่อเชื่อมต่อ Strava ใหม่อีกครั้ง");
         }
         return;
     }
 
-    // เคสที่ 3: Token ยังใช้งานได้ปกติ -> ดึงข้อมูลแคลอรีทันที
+    // เคสที่ 3: Token ยังใช้งานได้ปกติ -> ดึงข้อมูลแคลอรี
     fetchTodayStravaCalories(accessToken);
 }
 
-// 3. ฟังก์ชันแลกเปลี่ยน Code เป็น Token หลังจากผู้ใช้ Login กลับมา
+// 2. ฟังก์ชันแลกเปลี่ยน Code เป็น Token หลังจากผู้ใช้อนุมัติสิทธิ์กลับมา
 async function checkStravaCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const scope = urlParams.get('scope'); // เช็กดูว่าผู้ใช้กดยอมรับสิทธิ์ไหม
     
     if (code) {
         const statusLabel = document.getElementById('strava-status');
         if (statusLabel) statusLabel.innerText = '⏳ กำลังแลกเปลี่ยนสิทธิ์กับ Strava...';
         
-        // ล้าง Code ออกจาก URL บนแถบบาร์เพื่อความสะอาด
+        // ล้างพารามิเตอร์ออกจาก URL บาร์
         window.history.replaceState({}, document.title, window.location.pathname);
+
+        // ตรวจสอบว่าผู้ใช้ยอมรับสิทธิ์ activity:read หรือไม่
+        if (scope && !scope.includes('activity:read')) {
+            if (statusLabel) statusLabel.innerText = '❌ ผิดพลาด: คุณไม่ได้ติ๊กอนุญาตให้เข้าถึงกิจกรรม (Activity)';
+            alert("กรุณาติ๊กเลือกช่อง 'View data about your activities' ตอนล็อกอินด้วยนะครับ");
+            return;
+        }
 
         try {
             const response = await fetch('https://www.strava.com/oauth/token', {
@@ -929,13 +940,13 @@ async function checkStravaCallback() {
             const data = await response.json();
             
             if (data.access_token) {
-                // เซฟคีย์ที่ได้ลงเครื่องผู้ใช้ไว้ใช้ต่อรอบหน้า
                 localStorage.setItem('strava_access_token', data.access_token);
                 localStorage.setItem('strava_refresh_token', data.refresh_token);
                 localStorage.setItem('strava_expires_at', data.expires_at);
                 
-                // ดึงข้อมูลแคลอรีทันทีหลังล็อกอินสำเร็จ
                 fetchTodayStravaCalories(data.access_token);
+            } else {
+                if (statusLabel) statusLabel.innerText = '❌ ไม่ได้รับสิทธิ์จากเซิร์ฟเวอร์';
             }
         } catch (error) {
             console.error(error);
@@ -944,7 +955,7 @@ async function checkStravaCallback() {
     }
 }
 
-// 4. ฟังก์ชันขอ Token ใหม่โดยใช้ Refresh Token (รันเบื้องหลังอัตโนมัติ)
+// 3. ฟังก์ชันรีเฟรช Token อัตโนมัติ (รันเบื้องหลังเมื่อ Token ตัวเก่าหมดอายุครบ 6 ชม.)
 async function refreshStravaToken(refreshToken) {
     try {
         const response = await fetch('https://www.strava.com/oauth/token', {
@@ -968,11 +979,11 @@ async function refreshStravaToken(refreshToken) {
         }
     } catch (error) {
         console.error(error);
-        localStorage.clear();
+        localStorage.removeItem('strava_access_token');
     }
 }
 
-// 5. ฟังก์ชันยิงดึงค่าแคลอรีของวันนี้ (เหมือนเดิม แต่ใช้ dynamic token)
+// 4. ฟังก์ชันดึงค่าแคลอรีมาประมวลผล (เพิ่มระบบตรวจจับ Error คืนค่ากลับไปสู้หน้าปกติ)
 async function fetchTodayStravaCalories(accessToken) {
     const statusLabel = document.getElementById('strava-status');
     const today = new Date();
@@ -984,27 +995,36 @@ async function fetchTodayStravaCalories(accessToken) {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
 
+        // หากเจอ Error เรื่องสิทธิ์อีกรอบ ให้ล้างสิทธิ์เก่าทิ้งเพื่อให้ล็อกอินเลือกสิทธิ์ใหม่
+        if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem('strava_access_token');
+            if (statusLabel) statusLabel.innerText = '❌ สิทธิ์ไม่ถูกต้อง กรุณากดซิงค์เพื่อยอมรับสิทธิ์อีกครั้ง';
+            return;
+        }
+
         const activities = await response.json();
         let totalActiveCalories = 0;
 
-        activities.forEach(activity => {
-            if (activity.calories) {
-                totalActiveCalories += activity.calories;
-            } else if (activity.kilojoules) {
-                totalActiveCalories += activity.kilojoules * 0.239;
-            }
-        });
+        if (Array.isArray(activities)) {
+            activities.forEach(activity => {
+                if (activity.calories) {
+                    totalActiveCalories += activity.calories;
+                } else if (activity.kilojoules) {
+                    totalActiveCalories += activity.kilojoules * 0.239;
+                }
+            });
+        }
 
         const finalCalories = Math.round(totalActiveCalories);
         applyDynamicTDEE(finalCalories);
 
     } catch (error) {
         console.error(error);
-        if (statusLabel) statusLabel.innerText = '❌ ดึงข้อมูลกิจกรรมล้มเหลว';
+        if (statusLabel) statusLabel.innerText = '❌ เกิดข้อผิดพลาดทางเครือข่าย';
     }
 }
 
-// 6. ฟังก์ชันคำนวณร่วมกับระบบเดิม (เหมือนเดิม)
+// 5. ฟังก์ชันคำนวณร่วมกับระบบเดิม (ตามเดิม ไม่พังส่วนอื่นๆ)
 function applyDynamicTDEE(activeCalories) {
     let baseTDEE = parseFloat(localStorage.getItem('tdee')) || 2000; 
     let todayTotalTDEE = baseTDEE + activeCalories;
@@ -1024,9 +1044,9 @@ function applyDynamicTDEE(activeCalories) {
     }
 }
 
-// 7. สั่งให้ระบบเริ่มทำงานเมื่อเปิดหน้าจอ
+// 6. ลงทะเบียน Event Listener
 document.addEventListener('DOMContentLoaded', () => {
-    checkStravaCallback(); // เช็กว่าเด้งกลับมาจากหน้าล็อกอินไหม
+    checkStravaCallback();
     
     const syncBtn = document.getElementById('strava-sync-btn');
     if (syncBtn) {
