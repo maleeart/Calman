@@ -1,5 +1,31 @@
 [
   {
+    "id": 1781618596744,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ข้าวสวย",
+        "calories": 250,
+        "protein": 5
+      },
+      {
+        "name": "หมูทอดกระเทียมกรอบ",
+        "calories": 450,
+        "protein": 25
+      },
+      {
+        "name": "ไข่ข้น",
+        "calories": 150,
+        "protein": 10
+      }
+    ],
+    "date": "2026-06-16",
+    "time": "21:03",
+    "menu": "ข้าวหมูทอดกระเทียมกรอบ+ไข่ข้น",
+    "calories": 850,
+    "protein": 40
+  },
+  {
     "id": 1781611914859,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
