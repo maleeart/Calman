@@ -198,18 +198,21 @@
         }
 
         window.onload = function () {
-            const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
+    const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
 
-            configKeys.forEach(k => {
-                const el = document.getElementById(k);
-                if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
-            });
+    configKeys.forEach(k => {
+        const el = document.getElementById(k);
+        if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
+    });
 
-            document.getElementById('selectedDate').value = getTodayDate();
+    document.getElementById('selectedDate').value = getTodayDate();
 
-            calculateTDEE();
-            fetchDataFromGitHub();
-        };
+    // 1. คำนวณ TDEE ฐานไว้รอในระบบก่อน
+    calculateTDEE();
+    
+    // 2. ไปดึงข้อมูลจาก GitHub มา แล้วให้ฟังก์ชันนั้นสั่งวาดหน้าจอ (displayHistory) เอง
+    fetchDataFromGitHub();
+};
 
         function calculateTDEE() {
             const w = Number(document.getElementById('userWeight').value);
@@ -231,7 +234,7 @@
             document.getElementById('bmrValue').innerText = Math.round(bmr);
             document.getElementById('tdeeValue').innerText = globalTDEE;
 
-            displayHistory(globalHistory);
+            
         }
 
         function normalizeHistory(history) {
@@ -276,10 +279,13 @@
                 }
 
                 const fileData = await res.json();
-                latestFileSha = fileData.sha;
-                globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, ''))));
-                displayHistory(globalHistory);
-                hideStatus();
+latestFileSha = fileData.sha;
+// แปลงข้อมูลและเก็บลงตัวแปรหลัก
+globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, ''))));
+
+// ✅ บรรทัดนี้สำคัญมาก! ต้องสั่งวาดประวัติข้อมูลหลังจากถอดรหัส Base64 เสร็จสิ้น
+displayHistory(globalHistory);
+hideStatus();
             } catch (e) {
                 console.error(e);
                 showStatus('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 'error');
