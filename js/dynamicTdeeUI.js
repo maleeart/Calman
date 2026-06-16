@@ -20,11 +20,15 @@ const DynamicTdeeUI = (() => {
    * Initialize the Dynamic TDEE UI
    * Should be called from index.html after user profile is set
    * 
-   * @param {object} profile - { weight, height, age, gender, activityMultiplier }
+   * @param {object} profile - { weight, height, age, gender, activityMultiplier, tdeeBasis? }
+   *   - tdeeBasis: 'sedentary' (default) or 'activity-adjusted'
    * @param {string} containerId - HTML element ID where UI will be inserted
    */
   const init = (profile, containerId = 'dynamic-tdee-container') => {
-    userProfile = profile;
+    userProfile = {
+      ...profile,
+      tdeeBasis: profile.tdeeBasis || 'sedentary'  // Default to sedentary
+    };
     console.log('DynamicTdeeUI initialized with profile:', userProfile);
 
     // Load stored activity log from localStorage
@@ -99,6 +103,36 @@ const DynamicTdeeUI = (() => {
     container.innerHTML = `
       <div style="margin-top: 2rem; padding: 1.5rem; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #4285f4;">
         <h3 style="margin: 0 0 1rem 0; color: #333; font-size: 1.1rem;">Dynamic TDEE</h3>
+        
+        <!-- TDEE Calculation Method -->
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: white; border-radius: 6px; border: 1px solid #e0e0e0;">
+          <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.5rem 0; font-weight: 500;">📊 TDEE Calculation Method:</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;">
+              <input type="radio" name="tdee-basis" value="sedentary" 
+                ${userProfile.tdeeBasis === 'sedentary' ? 'checked' : ''} 
+                onchange="DynamicTdeeUI.changeTdeeMethod(this.value)"
+                style="cursor: pointer;">
+              <span>
+                <strong>Sedentary Base</strong><br>
+                <span style="font-size: 0.8rem; color: #999;">(1.2 multiplier + activity bonus)</span>
+              </span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem;">
+              <input type="radio" name="tdee-basis" value="activity-adjusted" 
+                ${userProfile.tdeeBasis === 'activity-adjusted' ? 'checked' : ''} 
+                onchange="DynamicTdeeUI.changeTdeeMethod(this.value)"
+                style="cursor: pointer;">
+              <span>
+                <strong>Activity-Adjusted</strong><br>
+                <span style="font-size: 0.8rem; color: #999;">(Your multiplier + bonus)</span>
+              </span>
+            </label>
+          </div>
+          <p style="font-size: 0.75rem; color: #999; margin: 0.5rem 0 0 0; line-height: 1.4;">
+            💡 <strong>Tip:</strong> Use "Sedentary Base" if your activity varies a lot day-to-day. Use "Activity-Adjusted" to preserve your typical weekly average.
+          </p>
+        </div>
         
         <!-- Google Fit Sync Section -->
         <div id="gfit-section" style="margin-bottom: 1.5rem;">
@@ -348,6 +382,23 @@ const DynamicTdeeUI = (() => {
   };
 
   /**
+   * Handle TDEE method change
+   */
+  const changeTdeeMethod = (method) => {
+    userProfile.tdeeBasis = method;
+    console.log('Changed TDEE basis to:', method);
+    
+    // Re-display current results if any
+    const stepInput = document.getElementById('step-input');
+    const caloriesInput = document.getElementById('calories-input');
+    
+    if (stepInput?.value || caloriesInput?.value) {
+      // Trigger recalculation with new method
+      handleManualInput(new Event('submit'));
+    }
+  };
+
+  /**
    * Expose public methods as window methods for onclick handlers
    */
   window.DynamicTdeeUI = {
@@ -355,6 +406,7 @@ const DynamicTdeeUI = (() => {
     handleGFitLogin,
     handleGFitSync,
     handleManualInput,
+    changeTdeeMethod,
     addActivityRecord,
     getActivityForDate,
     loadActivityLog,

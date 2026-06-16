@@ -137,11 +137,12 @@
         const user = "maleeart"; 
         const repo = "Calman";
         const userProfile = {
-  weight: 64.5,              // kg
-  height: 167,             // cm
+  weight: 64.5,
+  height: 167,
   age: 31,
   gender: 'male',
-  activityMultiplier: 1.55 // ใช้ค่าที่มีอยู่ของคุณ
+  activityMultiplier: 1.55,
+  tdeeBasis: 'sedentary'  // ← ใช้ 1.2 base
 };
 
 DynamicTdeeUI.init(userProfile, 'dynamic-tdee-container');

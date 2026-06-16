@@ -108,14 +108,34 @@ const TDEECalculator = (() => {
   /**
    * Main function: Calculate Dynamic TDEE for a specific day
    * 
-   * @param {object} userProfile - { weight, height, age, gender, activityMultiplier }
+   * IMPORTANT: Activity Multiplier Interpretation
+   * ──────────────────────────────────────────────
+   * Activity Multiplier in traditional TDEE (BMR × multiplier) is STATIC—an average.
+   * For Dynamic TDEE (day-to-day adjustment), we have two options:
+   * 
+   * Option A: SEDENTARY BASELINE (Recommended)
+   *   - Use multiplier 1.2 (sedentary) as base
+   *   - Add activity bonuses for ACTUAL steps + exercise each day
+   *   - NO double-counting of exercise
+   *   - Better for people with variable activity levels
+   * 
+   * Option B: ACTIVITY-ADJUSTED BASELINE
+   *   - Use your typical activity multiplier (e.g., 1.55)
+   *   - Subtract "normal exercise" baseline from bonus
+   *   - Add back actual exercise
+   *   - More complex, but preserves typical weekly average
+   * 
+   * We default to Option A (Sedentary) for simplicity and accuracy.
+   * 
+   * @param {object} userProfile - { weight, height, age, gender, activityMultiplier, tdeeBasis }
+   *   - tdeeBasis: 'sedentary' (1.2) or 'activity-adjusted' (use provided multiplier)
    * @param {object} dayData - { stepCount, activeCalories, exerciseType, date }
    * @returns {object} Complete TDEE breakdown for the day
    * 
    * Example return value:
    * {
    *   date: "2025-06-16",
-   *   base: { bmr: 1700, tdee: 2550 },
+   *   base: { bmr: 1700, tdee: 2040 },
    *   activity: {
    *     stepCount: 12000,
    *     stepBonus: 315,
@@ -124,8 +144,8 @@ const TDEECalculator = (() => {
    *     exerciseBonus: 518,
    *     totalActivityBonus: 833
    *   },
-   *   total: 3383,
-   *   breakdown: "2550 (base) + 315 (steps) + 518 (exercise) = 3383 kcal"
+   *   total: 2873,
+   *   breakdown: "2040 (base) + 315 (steps) + 518 (exercise) = 2873 kcal"
    * }
    */
   const calculateDynamicTDEE = (userProfile, dayData) => {
@@ -140,7 +160,8 @@ const TDEECalculator = (() => {
       height,
       age,
       gender = 'male',
-      activityMultiplier = 1.55
+      activityMultiplier = 1.55,
+      tdeeBasis = 'sedentary'  // NEW: Choose calculation method
     } = userProfile;
 
     const {
@@ -150,8 +171,20 @@ const TDEECalculator = (() => {
       date = new Date().toISOString().split('T')[0]
     } = dayData;
 
-    // Calculate base TDEE
-    const baseTDEE = calculateBaseTDEE(weight, height, age, gender, activityMultiplier);
+    // Decide which multiplier to use
+    let effectiveMultiplier = activityMultiplier;
+    
+    if (tdeeBasis === 'sedentary') {
+      // Option A: Use sedentary baseline (1.2) to avoid double-counting
+      effectiveMultiplier = 1.2;
+    } else if (tdeeBasis === 'activity-adjusted') {
+      // Option B: Use provided multiplier as baseline
+      // (assumes it represents typical week average)
+      effectiveMultiplier = activityMultiplier;
+    }
+
+    // Calculate base TDEE with chosen multiplier
+    const baseTDEE = calculateBaseTDEE(weight, height, age, gender, effectiveMultiplier);
 
     // Calculate activity bonuses
     const stepBonus = calculateStepBonus(stepCount, weight);
@@ -167,6 +200,8 @@ const TDEECalculator = (() => {
     return {
       date: date,
       base: baseTDEE,
+      tdeeBasis: tdeeBasis,  // NEW: Include which method was used
+      originalActivityMultiplier: activityMultiplier,  // NEW: Show original for reference
       activity: {
         stepCount: stepCount,
         stepBonus: stepBonus,
