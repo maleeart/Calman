@@ -215,27 +215,27 @@
 };
 
         function calculateTDEE() {
-            const w = Number(document.getElementById('userWeight').value);
-            const h = Number(document.getElementById('userHeight').value);
-            const a = Number(document.getElementById('userAge').value);
-            const act = Number(document.getElementById('userActivity').value);
-            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
+    const w = Number(document.getElementById('userWeight').value);
+    const h = Number(document.getElementById('userHeight').value);
+    const a = Number(document.getElementById('userAge').value);
+    const act = Number(document.getElementById('userActivity').value);
+    const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
 
-            localStorage.setItem('userWeight', w);
-            localStorage.setItem('userHeight', h);
-            localStorage.setItem('userAge', a);
-            localStorage.setItem('userActivity', act);
-            localStorage.setItem('proteinGoal', proteinGoal);
+    localStorage.setItem('userWeight', w);
+    localStorage.setItem('userHeight', h);
+    localStorage.setItem('userAge', a);
+    localStorage.setItem('userActivity', act);
+    localStorage.setItem('proteinGoal', proteinGoal);
 
-            const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
-            baseTDEE = Math.round(bmr * act);
-            globalTDEE = baseTDEE; // ตั้งต้นใช้ค่าฐานก่อนซิงค์
+    const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
+    
+    // ✅ แก้ไขบรรทัดนี้: เปลี่ยนจาก mr เป็น bmr ให้ถูกต้อง
+    baseTDEE = Math.round(bmr * act);
+    globalTDEE = baseTDEE; 
 
-            document.getElementById('bmrValue').innerText = Math.round(bmr);
-            document.getElementById('tdeeValue').innerText = globalTDEE;
-
-            
-        }
+    document.getElementById('bmrValue').innerText = Math.round(bmr);
+    document.getElementById('tdeeValue').innerText = globalTDEE;
+}
 
         function normalizeHistory(history) {
             if (!Array.isArray(history)) return [];
@@ -593,64 +593,59 @@ hideStatus();
         // 🍊 STRVA HIDDEN TOKEN LOGIC (CLEAN ONLY)
         // ==========================================================================
         async function fetchTodayStravaCalories() {
-            const syncBtn = document.getElementById('strava-sync-btn');
-            const statusLabel = document.getElementById('strava-status');
-            if (!syncBtn) return;
+    const syncBtn = document.getElementById('strava-sync-btn');
+    const statusLabel = document.getElementById('strava-status');
+    if (!syncBtn) return;
 
-            if (statusLabel) statusLabel.innerText = '⏳ กำลังดึงข้อมูลกิจกรรมจาก Strava...';
+    if (statusLabel) statusLabel.innerText = '⏳ กำลังดึงข้อมูลกิจกรรมจาก Strava...';
 
-            // ดึง Token ท่อน A และ B จากปุ่มมารวมกัน
-            const partA = syncBtn.getAttribute('data-part-a');
-            const partB = syncBtn.getAttribute('data-part-b');
-            const accessToken = partA + partB;
+    try {
+        const partA = syncBtn.getAttribute('data-part-a');
+        const partB = syncBtn.getAttribute('data-part-b');
+        const accessToken = partA + partB;
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const afterTimestamp = Math.floor(today.getTime() / 1000); 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const afterTimestamp = Math.floor(today.getTime() / 1000); 
 
-            try {
-                const response = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${afterTimestamp}`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
+        const response = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${afterTimestamp}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
 
-                if (response.status === 401) {
-                    if (statusLabel) statusLabel.innerText = '❌ Token หมดอายุแล้ว! กรุณาอัปเดต Token ในโค้ด';
-                    return;
-                }
-
-                const activities = await response.json();
-                let totalActiveCalories = 0;
-
-                if (Array.isArray(activities)) {
-                    activities.forEach(activity => {
-                        if (activity.calories) {
-                            totalActiveCalories += activity.calories;
-                        } else if (activity.kilojoules) {
-                            totalActiveCalories += activity.kilojoules * 0.239;
-                        }
-                    });
-                }
-
-                const finalCalories = Math.round(totalActiveCalories);
-                
-                // นำค่าแคลอรีที่ได้ ไปบวกเพิ่มเข้ากับ baseTDEE ตั้งต้น
-                globalTDEE = baseTDEE + finalCalories;
-                
-                // อัปเดตตัวเลขแสดงผลบนหน้าจอแอป
-                document.getElementById('tdeeValue').innerText = globalTDEE;
-                
-                // สั่งคำนวณแดชบอร์ดซ้ำเพื่อให้แถบโปรเกรสบาร์ปรับตาม TDEE ใหม่
-                displayHistory(globalHistory);
-
-                if (statusLabel) {
-                    statusLabel.innerText = finalCalories > 0 ? `🔥 ซิงค์สำเร็จ! ตรวจพบกิจกรรมวันนี้เพิ่ม +${finalCalories} kcal` : `✅ ซิงค์สำเร็จ: วันนี้ใช้ TDEE ฐานปกติ`;
-                }
-
-            } catch (error) {
-                console.error(error);
-                if (statusLabel) statusLabel.innerText = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย';
-            }
+        if (response.status === 401) {
+            if (statusLabel) statusLabel.innerText = '❌ Token หมดอายุแล้ว! กรุณาอัปเดต Token ในโค้ด';
+            return;
         }
+
+        const activities = await response.json();
+        let totalActiveCalories = 0;
+
+        if (Array.isArray(activities)) {
+            activities.forEach(activity => {
+                if (activity.calories) {
+                    totalActiveCalories += activity.calories;
+                } else if (activity.kilojoules) {
+                    totalActiveCalories += activity.kilojoules * 0.239;
+                }
+            });
+        }
+
+        const finalCalories = Math.round(totalActiveCalories);
+        
+        globalTDEE = baseTDEE + finalCalories;
+        document.getElementById('tdeeValue').innerText = globalTDEE;
+        
+        displayHistory(globalHistory);
+
+        if (statusLabel) {
+            statusLabel.innerText = finalCalories > 0 ? `🔥 ซิงค์สำเร็จ! เพิ่มกิจกรรมวันนี้ +${finalCalories} kcal` : `✅ ซิงค์สำเร็จ: วันนี้ใช้ TDEE ฐานปกติ`;
+        }
+
+    } catch (error) {
+        console.error(error);
+        if (statusLabel) statusLabel.innerText = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย';
+    }
+}
 
         function toggleWeekDetails() {
             const details = document.getElementById('weekDetails');
