@@ -1,5 +1,36 @@
 [
   {
+    "id": 1781574780130,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ข้าวโอ๊ต 50 กรัม",
+        "calories": 190,
+        "protein": 6.5
+      },
+      {
+        "name": "นมโอ๊ต 50 ml",
+        "calories": 25,
+        "protein": 0.5
+      },
+      {
+        "name": "เวย์ 1 สกู๊ป (ประมาณ 30 กรัม)",
+        "calories": 120,
+        "protein": 24
+      },
+      {
+        "name": "นูเทลลา 1 ช้อนชา (ประมาณ 5 กรัม)",
+        "calories": 25,
+        "protein": 0.4
+      }
+    ],
+    "date": "2026-06-16",
+    "time": "08:53",
+    "menu": "ข้าวโอ๊ต 50 กรัม, นมโอ๊ต 50 ml, เวย์ 1 สกู๊ป,นูเทลลา 1 ช้อนชา",
+    "calories": 360,
+    "protein": 31.4
+  },
+  {
     "id": 1781528546091,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
