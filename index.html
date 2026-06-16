@@ -589,6 +589,39 @@ hideStatus();
         // ==========================================================================
         // 🍊 STRVA HIDDEN TOKEN LOGIC (CLEAN ONLY)
         // ==========================================================================
+
+
+async function getValidStravaToken() {
+    // ใส่ Client ID, Secret และ Refresh Token ของน้าลงไปตรงนี้ (แนะนำให้หั่นท่อนหรือดึงจาก Attribute ปุ่ม)
+    const clientId = "247652";
+    const clientSecret = "5f537565528ecba6e561e298d3e9b91fcadbe790";
+    const refreshToken = "9a9edda05c31aed68378146dc8909ca28ea996cf"; 
+
+    try {
+        const response = await fetch('https://www.strava.com/api/v3/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: refreshToken,
+                grant_type: 'refresh_token'
+            })
+        });
+
+        const data = await response.json();
+        // Strava จะส่ง access_token ตัวใหม่ล่าสุดมาให้ใช้งานได้อีก 6 ชม.
+        return data.access_token; 
+    } catch (error) {
+        console.error('ไม่สามารถ Refresh Token ได้:', error);
+        return null;
+    }
+}
+
+
+
+
+        
         async function fetchTodayStravaCalories() {
     const syncBtn = document.getElementById('strava-sync-btn');
     const statusLabel = document.getElementById('strava-status');
