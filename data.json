@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781688387157,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Almonds",
+        "calories": 100,
+        "protein": 4
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:26",
+    "menu": "อัลมอนด์ 10 เม็ด 100 kcal โปรตีน 4 กรัม",
+    "calories": 100,
+    "protein": 4
+  },
+  {
     "id": 1781688240988,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
