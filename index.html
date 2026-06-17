@@ -146,7 +146,6 @@
             return d.toISOString().slice(0, 10);
         }
 
-        // 🎯 ปรับปรุงฟังก์ชันการแปลงรหัสอักษรไทยให้รองรับโครงสร้างพิเศษของบราวเซอร์ ป้องกันการแครช
         function utf8ToBase64(str) {
             return btoa(unescape(encodeURIComponent(str)));
         }
@@ -311,7 +310,6 @@
                 const fileData = await res.json();
                 latestFileSha = fileData.sha;
                 
-                // 🎯 ถอดรหัสไฟล์ JSON ด้วยฟังก์ชันตัวใหม่แบบปลอดภัย
                 const cleanedContent = fileData.content.replace(/\s/g, '');
                 globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(cleanedContent)));
                 
@@ -593,6 +591,12 @@
                     body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: 'refresh_token' })
                 });
                 const data = await response.json();
+                
+                // 🎯 ดักจับเพิ่มเติม: ถ้าฝั่ง Strava บ่นว่าสิทธิ์ผิดพลาด ให้ตีค่าออกไปเป็น null ทันที
+                if (data.errors || !data.access_token) {
+                    console.error('Strava Token Refresh ล้มเหลว:', data);
+                    return null;
+                }
                 return data.access_token; 
             } catch (error) {
                 console.error('ไม่สามารถ Refresh Token ได้:', error);
@@ -609,7 +613,8 @@
             try {
                 const accessToken = await getValidStravaToken();
                 if (!accessToken) {
-                    if (statusLabel) statusLabel.innerText = '❌ สิทธิ์ล้มเหลว กรุณาเช็กไฟล์ config.js';
+                    // 🎯 ปรับการแจ้งเตือนหน้าร้านให้เคลียร์ชัดเจน ถ้าสิทธิ์เบื้องหลังไม่ผ่าน
+                    if (statusLabel) statusLabel.innerText = '❌ สิทธิ์เข้าถึงของ Strava ไม่ถูกต้อง กรุณาตรวจสอบค่าความปลอดภัยในไฟล์ config.js';
                     return;
                 }
 
@@ -621,6 +626,14 @@
                 const response = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${afterTimestamp}&before=${beforeTimestamp}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
+
+                // 🎯 ดักจับ: เช็กสถานะการตอบกลับของตัวกิจกรรมว่าเข้าถึงได้จริงไหม
+                if (response.status !== 200) {
+                    const errData = await response.json();
+                    console.error('Strava API Error:', errData);
+                    if (statusLabel) statusLabel.innerText = '❌ ดึงกิจกรรมไม่สำเร็จ: สิทธิ์ดึงข้อมูลนักกีฬาหมดอายุ';
+                    return;
+                }
 
                 const activities = await response.json();
                 let totalActiveCalories = 0;
