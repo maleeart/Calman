@@ -41,7 +41,7 @@
                         <option value="1.2">นั่งทำงานอยู่กับที่ (ไม่ออกกำลังกาย)</option>
                         <option value="1.375">ขยับน้อย / เล่นเบาๆ (1-3 วัน/สัปดาห์)</option>
                         <option value="1.55" selected>แอคทีฟปานกลาง / ซ้อมหนัก (3-5 วัน/สัปดาห์)</option>
-                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปเกดาห์)</option>
+                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปดาห์)</option>
                     </select>
                 </div>
 
@@ -146,12 +146,13 @@
             return d.toISOString().slice(0, 10);
         }
 
+        // 🎯 ปรับปรุงฟังก์ชันการแปลงรหัสอักษรไทยให้รองรับโครงสร้างพิเศษของบราวเซอร์ ป้องกันการแครช
         function utf8ToBase64(str) {
-            return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+            return btoa(unescape(encodeURIComponent(str)));
         }
 
         function base64ToUtf8(str) {
-            return new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0)));
+            return decodeURIComponent(escape(atob(str)));
         }
 
         function searchFoodDatabase(foodText) {
@@ -211,20 +212,16 @@
             if(bar) bar.classList.add('hidden');
         }
 
-        // 🎯 แก้ไขลำดับการโหลด (Boot Order) ให้เสถียร 100% ป้องกันหน้าเว็บดับค้าง
         window.onload = function () {
-            // 1. ผูกใส่วันที่ปัจจุบันลงในช่อง input ปฏิทินก่อน เพื่อให้ DOM มีค่าพร้อมใช้งานแน่นอน
             const dateEl = document.getElementById('selectedDate');
             if (dateEl) dateEl.value = getTodayDate();
 
-            // 2. ดึงค่าจาก LocalStorage มาใส่กล่องฟอร์ม
             const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
             configKeys.forEach(k => {
                 const el = document.getElementById(k);
                 if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
             });
 
-            // 3. ปลอดภัยแล้ว ค่อยสั่งคำนวณ TDEE และดึงฐานข้อมูลจาก GitHub ตามลำดับ
             calculateTDEE();
             fetchDataFromGitHub();
         };
@@ -243,7 +240,6 @@
             const actEl = document.getElementById('userActivity');
             const proteinEl = document.getElementById('proteinGoal');
 
-            // กันพังถ้าเรียกฟังก์ชันก่อน DOM สร้างเสร็จในอนาคต
             const w = weightEl ? Number(weightEl.value) : 64.6;
             const h = heightEl ? Number(heightEl.value) : 167;
             const a = ageEl ? Number(ageEl.value) : 31;
@@ -314,7 +310,11 @@
                 }
                 const fileData = await res.json();
                 latestFileSha = fileData.sha;
-                globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(fileData.content.replace(/\s/g, ''))));
+                
+                // 🎯 ถอดรหัสไฟล์ JSON ด้วยฟังก์ชันตัวใหม่แบบปลอดภัย
+                const cleanedContent = fileData.content.replace(/\s/g, '');
+                globalHistory = normalizeHistory(JSON.parse(base64ToUtf8(cleanedContent)));
+                
                 displayHistory(globalHistory);
                 hideStatus();
             } catch (e) {
