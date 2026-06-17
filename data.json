@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781695115435,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Bento",
+        "calories": 150,
+        "protein": 3
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "18:18",
+    "menu": "เบนโตะ 1 ซอง",
+    "calories": 150,
+    "protein": 3
+  },
+  {
     "id": 1781688407225,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
