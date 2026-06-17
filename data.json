@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781662755840,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Oat",
+        "calories": 190,
+        "protein": 7
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "09:19",
+    "menu": "ข้าวโอ๊ต 50 g",
+    "calories": 190,
+    "protein": 7
+  },
+  {
     "id": 1781618596744,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
