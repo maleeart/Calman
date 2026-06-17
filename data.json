@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781705301727,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Pork Neck Steak with Black Pepper Sauce + Side Dishes",
+        "calories": 550,
+        "protein": 35
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "21:08",
+    "menu": "สเต๊กสันคอหมูพริกไทยดำ+เครื่องเคียง",
+    "calories": 550,
+    "protein": 35
+  },
+  {
     "id": 1781695156576,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
