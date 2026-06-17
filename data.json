@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781688407225,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ก๋วยเตี๋ยวเส้นเล็กคลุกแห้ง",
+        "calories": 450,
+        "protein": 20
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:26",
+    "menu": "ก๋วยเตี๋ยวเส้นเล็กคลุกแห้ง",
+    "calories": 450,
+    "protein": 20
+  },
+  {
     "id": 1781688387157,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
