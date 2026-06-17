@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781695140200,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Coke Zero (small bottle)",
+        "calories": 0,
+        "protein": 0
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "18:19",
+    "menu": "โค๊กซีโร่ 1 ขวดเล็ก",
+    "calories": 0,
+    "protein": 0
+  },
+  {
     "id": 1781695115435,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
