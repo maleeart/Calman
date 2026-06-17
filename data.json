@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781705314992,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "ไก่นิวออลีน 4 ชิ้น",
+        "calories": 400,
+        "protein": 30
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "21:08",
+    "menu": "ไก่นิวออลีน 4 ชิ้น",
+    "calories": 400,
+    "protein": 30
+  },
+  {
     "id": 1781705301727,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
