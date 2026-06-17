@@ -1,5 +1,22 @@
 [
   {
+    "id": 1781688240988,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Oat milk",
+        "serving_size": "50 ml",
+        "calories": 25,
+        "protein": 0.5
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:24",
+    "menu": "นมโอ๊ต 50 ml",
+    "calories": 25,
+    "protein": 0.5
+  },
+  {
     "id": 1781688227923,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
