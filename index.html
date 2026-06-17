@@ -135,6 +135,7 @@
         let baseTDEE = 2300; 
         let globalHistory = [];
         let latestFileSha = null;
+        let stravaCalories = 0; // 🎯 ล็อกค่าพลังงานกิจกรรมป้องกันตัวเลขโดนเขียนทับ
 
         const user = "maleeart"; 
         const repo = "Calman";
@@ -151,6 +152,38 @@
 
         function base64ToUtf8(str) {
             return new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0)));
+        }
+
+        // กันแครชถ้าไม่มีคลังข้อมูลอาหารไทย
+        function searchFoodDatabase(foodText) {
+            if (typeof FOOD_DB === "undefined") return null;
+            const text = foodText.toLowerCase();
+            
+            for (const brand in FOOD_DB) {
+                if (text.includes(brand.toLowerCase())) {
+                    const menus = FOOD_DB[brand];
+                    for (const menu in menus) {
+                        if (text.includes(menu.toLowerCase())) {
+                            const item = menus[menu];
+                            return { items: [{ name: menu, calories: item.kcal, protein: item.protein }], total_calories: item.kcal, total_protein: item.protein, _model: "FoodDB" };
+                        }
+                    }
+                }
+            }
+            
+            try {
+                if (typeof THAI_FOOD_DB !== "undefined") {
+                    for (const menu in THAI_FOOD_DB) {
+                        if (text.includes(menu.toLowerCase())) {
+                            const item = THAI_FOOD_DB[menu];
+                            return { items: [{ name: menu, calories: item.kcal, protein: item.protein }], total_calories: item.kcal, total_protein: item.protein, _model: "ThaiFoodDB" };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("ไม่พบ THAI_FOOD_DB ใช้ AI ทดแทน:", e);
+            }
+            return null;
         }
 
         function escapeHtml(text) {
@@ -205,7 +238,9 @@
 
             const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
             baseTDEE = Math.round(bmr * act);
-            globalTDEE = baseTDEE; 
+            
+            // 🔄 ล็อกเกณฑ์คำนวณ: globalTDEE ต้องเป็นฐาน + ค่าซิงค์ล่าสุดเสมอ ป้องกันหน้าจอวาดทับ
+            globalTDEE = baseTDEE + stravaCalories; 
 
             document.getElementById('bmrValue').innerText = Math.round(bmr);
             document.getElementById('tdeeValue').innerText = globalTDEE;
@@ -262,44 +297,9 @@
             }
         }
 
-        function searchFoodDatabase(foodText) {
-            if (typeof FOOD_DB === "undefined") return null;
-            const text = foodText.toLowerCase();
-            
-            // 1. ค้นหาในฐานข้อมูลแบรนด์/ร้านอาหารเดิม
-            for (const brand in FOOD_DB) {
-                if (text.includes(brand.toLowerCase())) {
-                    const menus = FOOD_DB[brand];
-                    for (const menu in menus) {
-                        if (text.includes(menu.toLowerCase())) {
-                            const item = menus[menu];
-                            return { items: [{ name: menu, calories: item.kcal, protein: item.protein }], total_calories: item.kcal, total_protein: item.protein, _model: "FoodDB" };
-                        }
-                    }
-                }
-            }
-            
-            // 2. ค้นหาในฐานข้อมูลอาหารไทย (เพิ่ม try-catch ดักไว้ เผื่อหาไฟล์ไม่เจอ จะได้ไม่แครช)
-            try {
-                if (typeof THAI_FOOD_DB !== "undefined") {
-                    for (const menu in THAI_FOOD_DB) {
-                        if (text.includes(menu.toLowerCase())) {
-                            const item = THAI_FOOD_DB[menu];
-                            return { items: [{ name: menu, calories: item.kcal, protein: item.protein }], total_calories: item.kcal, total_protein: item.protein, _model: "ThaiFoodDB" };
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn("ไม่พบฐานข้อมูลอาหารไทย ปล่อยให้ AI คำนวณแทน:", e);
-            }
-            
-            return null;
-        }
-
         async function callOpenRouter(foodText) {
             const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
             if (!apiKey) throw new Error('ไม่พบ OpenRouter API Key');
-            
             const models = ["google/gemini-2.5-flash-lite", "deepseek/deepseek-v3", "google/gemma-3-4b-it:free"];
             const prompt = `Nutrition estimate for: "${foodText}". Output exactly in this format: {"items":[{"name":"Oat","calories":190,"protein":7}],"total_calories":190,"total_protein":7}`;
             
@@ -330,20 +330,13 @@
                     let rawText = data?.choices?.[0]?.message?.content;
                     if (!rawText) continue;
 
-                    console.log("Strict AI Response:", rawText);
-
                     const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                     const parsed = JSON.parse(cleaned);
 
-                    // 🎯 [จุดแก้ไขสำคัญ] สกัดค่าอย่างชาญฉลาด ป้องกัน AI พิมพ์ชื่อฟิลด์เพี้ยน
                     let itemsArray = parsed.items || [];
-                    
-                    // ค้นหาค่า Calories จากทุกชื่อที่เป็นไปได้
                     let finalCal = parsed.total_calories || parsed.calories || parsed.total_kcal || 0;
-                    // ค้นหาค่า Protein จากทุกชื่อที่เป็นไปได้
                     let finalProtein = parsed.total_protein || parsed.protein || parsed.protein_g || 0;
 
-                    // 💡 แผนสำรอง: ถ้าค่ารวมด้านนอกยังเป็น 0 แต่ในลิสต์ย่อย items มีการใส่ค่ามา ให้ดึงค่าจากไอเทมตัวแรกมาแทนเลย
                     if (Number(finalCal) === 0 && itemsArray.length > 0) {
                         finalCal = itemsArray[0].calories || itemsArray[0].kcal || 0;
                     }
@@ -351,14 +344,8 @@
                         finalProtein = itemsArray[0].protein || itemsArray[0].protein_g || 0;
                     }
 
-                    return { 
-                        items: itemsArray, 
-                        total_calories: Number(finalCal), 
-                        total_protein: Number(finalProtein), 
-                        _model: model 
-                    };
+                    return { items: itemsArray, total_calories: Number(finalCal), total_protein: Number(finalProtein), _model: model };
                 } catch (err) {
-                    console.warn(`โมเดล ${model} เจอปัญหา:`, err);
                     lastError = err;
                     continue;
                 }
@@ -616,13 +603,13 @@
 
                 const finalCalories = Math.round(totalActiveCalories);
                 
-                // 🔄 คำนวณยอดรวม TDEE ใหม่รายวัน (TDEE ฐาน + แคลอรีออกกำลังกาย)
-                globalTDEE = baseTDEE + finalCalories;
+                // 🔄 1. ปรับเกณฑ์: บันทึกเข้าตัวแปรหลักเพื่อใช้ประมวลผลระยะยาวรายวัน
+                stravaCalories = finalCalories;
                 
-                // 🎯 บังคับเขียนทับหน้าบ้าน: นำค่า TDEE ใหม่ไปอัปเดตแทนเป้าหมายเดิมในกล่อง UI ด้านบนทันที
-                document.getElementById('tdeeValue').innerText = globalTDEE;
+                // 🔄 2. รีรันตัวเลขเป้าหมายรวมแบบไดนามิก
+                calculateTDEE();
                 
-                // สั่งประมวลผลวาดหน้าจอซ้ำเพื่อปรับแถบ ProgressBar และการคำนวณส่วนต่างด้านล่างตามเป้าหมายใหม่
+                // สั่งวาดข้อมูลหน้าประวัติอาหารซ้ำเพื่อให้ Progressbar ยืดหยุ่นตามค่าเป้าหมายใหม่
                 displayHistory(globalHistory);
 
                 if (statusLabel) {
