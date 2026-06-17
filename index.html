@@ -41,7 +41,7 @@
                         <option value="1.2">นั่งทำงานอยู่กับที่ (ไม่ออกกำลังกาย)</option>
                         <option value="1.375">ขยับน้อย / เล่นเบาๆ (1-3 วัน/สัปดาห์)</option>
                         <option value="1.55" selected>แอคทีฟปานกลาง / ซ้อมหนัก (3-5 วัน/สัปดาห์)</option>
-                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปดาห์)</option>
+                        <option value="1.725">แอคทีฟมาก / ซ้อมหนัก (6-7 วัน/สัปเกดาห์)</option>
                     </select>
                 </div>
 
@@ -67,7 +67,6 @@
 
         <div class="mb-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
             <label class="block text-xs font-semibold text-gray-700 mb-1">📅 วันที่ต้องการดูข้อมูล</label>
-            <!-- 🎯 ปรับปรุงจุดบกพร่อง: เช็กก่อนวาดหน้าจอเสมอว่ามีข้อมูลหรือยัง ป้องกันค่าว่างวิ่งทับ -->
             <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="handleDateChange()">
             <p class="text-[10px] text-gray-400 mt-1">ระบบจะรวมแคลอรีเฉพาะวันที่เลือก ไม่รวมข้ามวัน</p>
         </div>
@@ -134,7 +133,7 @@
     <script>
         let globalTDEE = 2300;
         let baseTDEE = 2300; 
-        let globalHistory = null; // 🎯 เปลี่ยนเป็น null เพื่อตั้งด่านเช็กว่าโหลดจาก GitHub แล้วหรือยัง
+        let globalHistory = null; 
         let latestFileSha = null;
         let stravaDailyValues = {}; 
 
@@ -192,6 +191,7 @@
 
         function showStatus(msg, type = 'info') {
             const bar = document.getElementById('statusBar');
+            if(!bar) return;
             const styles = {
                 info: 'bg-blue-50 text-blue-700 border border-blue-200',
                 success: 'bg-green-50 text-green-700 border border-green-200',
@@ -207,21 +207,28 @@
         }
 
         function hideStatus() {
-            document.getElementById('statusBar').classList.add('hidden');
+            const bar = document.getElementById('statusBar');
+            if(bar) bar.classList.add('hidden');
         }
 
+        // 🎯 แก้ไขลำดับการโหลด (Boot Order) ให้เสถียร 100% ป้องกันหน้าเว็บดับค้าง
         window.onload = function () {
+            // 1. ผูกใส่วันที่ปัจจุบันลงในช่อง input ปฏิทินก่อน เพื่อให้ DOM มีค่าพร้อมใช้งานแน่นอน
+            const dateEl = document.getElementById('selectedDate');
+            if (dateEl) dateEl.value = getTodayDate();
+
+            // 2. ดึงค่าจาก LocalStorage มาใส่กล่องฟอร์ม
             const configKeys = ['userWeight', 'userHeight', 'userAge', 'userActivity', 'proteinGoal'];
             configKeys.forEach(k => {
                 const el = document.getElementById(k);
                 if (el && localStorage.getItem(k)) el.value = localStorage.getItem(k);
             });
-            document.getElementById('selectedDate').value = getTodayDate();
+
+            // 3. ปลอดภัยแล้ว ค่อยสั่งคำนวณ TDEE และดึงฐานข้อมูลจาก GitHub ตามลำดับ
             calculateTDEE();
             fetchDataFromGitHub();
         };
 
-        // 🎯 ด่านความปลอดภัย: สลับวันในปฏิทินแล้วจะไม่ล้างประวัติที่โหลดมาแล้ว
         function handleDateChange() {
             calculateTDEE();
             if (globalHistory !== null) {
@@ -230,28 +237,38 @@
         }
 
         function calculateTDEE() {
-            const w = Number(document.getElementById('userWeight').value) || 60;
-            const h = Number(document.getElementById('userHeight').value) || 160;
-            const a = Number(document.getElementById('userAge').value) || 30;
-            const act = Number(document.getElementById('userActivity').value) || 1.2;
-            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
+            const weightEl = document.getElementById('userWeight');
+            const heightEl = document.getElementById('userHeight');
+            const ageEl = document.getElementById('userAge');
+            const actEl = document.getElementById('userActivity');
+            const proteinEl = document.getElementById('proteinGoal');
 
-            localStorage.setItem('userWeight', w);
-            localStorage.setItem('userHeight', h);
-            localStorage.setItem('userAge', a);
-            localStorage.setItem('userActivity', act);
-            localStorage.setItem('proteinGoal', proteinGoal);
+            // กันพังถ้าเรียกฟังก์ชันก่อน DOM สร้างเสร็จในอนาคต
+            const w = weightEl ? Number(weightEl.value) : 64.6;
+            const h = heightEl ? Number(heightEl.value) : 167;
+            const a = ageEl ? Number(ageEl.value) : 31;
+            const act = actEl ? Number(actEl.value) : 1.55;
+            const proteinGoal = proteinEl ? Number(proteinEl.value || 0) : 120;
+
+            if(weightEl) localStorage.setItem('userWeight', w);
+            if(heightEl) localStorage.setItem('userHeight', h);
+            if(ageEl) localStorage.setItem('userAge', a);
+            if(actEl) localStorage.setItem('userActivity', act);
+            if(proteinEl) localStorage.setItem('proteinGoal', proteinGoal);
 
             const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
             baseTDEE = Math.round(bmr * act);
             
-            const activeDate = document.getElementById('selectedDate').value || getTodayDate();
+            const dateInput = document.getElementById('selectedDate');
+            const activeDate = dateInput ? dateInput.value : getTodayDate();
             const currentDayStrava = Number(stravaDailyValues[activeDate] || 0);
 
             globalTDEE = baseTDEE + currentDayStrava; 
 
-            document.getElementById('bmrValue').innerText = Math.round(bmr);
-            document.getElementById('tdeeValue').innerText = globalTDEE;
+            const bmrValEl = document.getElementById('bmrValue');
+            const tdeeValEl = document.getElementById('tdeeValue');
+            if(bmrValEl) bmrValEl.innerText = Math.round(bmr);
+            if(tdeeValEl) tdeeValEl.innerText = globalTDEE;
         }
 
         function normalizeHistory(history) {
@@ -288,7 +305,8 @@
                 if (res.status === 404) {
                     globalHistory = [];
                     latestFileSha = null;
-                    document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json บน GitHub</p>';
+                    const histList = document.getElementById('historyList');
+                    if(histList) histList.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีไฟล์ data.json บน GitHub</p>';
                     updateDashboardValues(0, 0);
                     updateWeekSummary([]);
                     hideStatus();
@@ -302,7 +320,7 @@
             } catch (e) {
                 console.error(e);
                 showStatus('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 'error');
-                globalHistory = []; // ล็อกค่ากันค้าง
+                globalHistory = []; 
             }
         }
 
@@ -332,8 +350,7 @@
                     let rawText = data?.choices?.[0]?.message?.content;
                     if (!rawText) continue;
 
-                    const cleaned = rawText.replace(/```json/gi, '').replace(/
-```/g, '').trim();
+                    const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                     const parsed = JSON.parse(cleaned);
 
                     let itemsArray = parsed.items || [];
@@ -389,11 +406,12 @@
                 showStatus('🤖 Step 1/2 — กำลังคำนวณอาหาร…', 'info');
                 let foodInfo = searchFoodDatabase(foodText) || await callOpenRouter(foodText);
                 showStatus('☁️ Step 2/2 — กำลังบันทึกลง GitHub…', 'info');
+                const dateInput = document.getElementById('selectedDate');
                 const newItem = {
                     id: Date.now(),
                     model: foodInfo._model,
                     aiItems: foodInfo.items || [],
-                    date: document.getElementById('selectedDate').value || getTodayDate(),
+                    date: dateInput ? dateInput.value : getTodayDate(),
                     time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
                     menu: foodText,
                     calories: Number(foodInfo.total_calories || 0),
@@ -430,7 +448,9 @@
 
         function displayHistory(history) {
             const listContainer = document.getElementById('historyList');
-            const selectedDate = document.getElementById('selectedDate').value || getTodayDate();
+            if(!listContainer) return;
+            const dateInput = document.getElementById('selectedDate');
+            const selectedDate = dateInput ? dateInput.value : getTodayDate();
             const safeHistory = normalizeHistory(history);
             const dayItems = safeHistory.filter(item => item.date === selectedDate);
             let totalCalToday = 0;
@@ -464,44 +484,55 @@
         }
 
         function updateDashboardValues(totalCal, totalProtein) {
-            document.getElementById('dayCal').innerText = `${totalCal} kcal`;
-            document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
+            const dayCalEl = document.getElementById('dayCal');
+            const dayProtEl = document.getElementById('dayProtein');
+            if(dayCalEl) dayCalEl.innerText = `${totalCal} kcal`;
+            if(dayProtEl) dayProtEl.innerText = `${totalProtein} กรัม`;
             
-            // 🎯 ป้องกันค่า TDEE เป็น 0 จนแถบความคืบหน้าคำนวณเออเร่อเป็น Infinity
             let currentTargetTdee = globalTDEE > 0 ? globalTDEE : 2300;
             let percent = Math.min((totalCal / currentTargetTdee) * 100, 100);
             if (!isFinite(percent) || isNaN(percent)) percent = 0;
             
             const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = `${percent}%`;
+            if(progressBar) progressBar.style.width = `${percent}%`;
+            
             const statusBox = document.getElementById('tdeeStatus');
             const diff = currentTargetTdee - totalCal;
             
-            if (diff > 500) {
-                progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900';
-            } else if (diff >= 0) {
-                progressBar.className = 'bg-green-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🟢 Calorie Deficit กำลังดี เหลืออีก <span class="font-bold text-green-400">${diff} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900';
-            } else {
-                progressBar.className = 'bg-orange-500 h-full transition-all duration-500';
-                statusBox.innerHTML = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
-                statusBox.className = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
+            if(statusBox && progressBar) {
+                if (diff > 500) {
+                    progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
+                    statusBox.innerHTML = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
+                    statusBox.className = 'text-xs text-center font-medium text-blue-200 bg-blue-950 p-2.5 rounded-xl border border-blue-900';
+                } else if (diff >= 0) {
+                    progressBar.className = 'bg-green-500 h-full transition-all duration-500';
+                    statusBox.innerHTML = `🟢 Calorie Deficit กำลังดี เหลืออีก <span class="font-bold text-green-400">${diff} kcal</span>`;
+                    statusBox.className = 'text-xs text-center font-medium text-green-200 bg-green-950 p-2.5 rounded-xl border border-green-900';
+                } else {
+                    progressBar.className = 'bg-orange-500 h-full transition-all duration-500';
+                    statusBox.innerHTML = `🟠 กินเกิน TDEE ไปแล้ว <span class="font-bold text-orange-400">${Math.abs(diff)} kcal</span>`;
+                    statusBox.className = 'text-xs text-center font-medium text-orange-200 bg-orange-950 p-2.5 rounded-xl border border-orange-900';
+                }
             }
-            const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
+
+            const proteinGoalInput = document.getElementById('proteinGoal');
+            const proteinGoal = proteinGoalInput ? Number(proteinGoalInput.value || 0) : 120;
             const proteinBar = document.getElementById('proteinBar');
             const proteinStatus = document.getElementById('proteinStatus');
+            
             let proteinPercent = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
             if (!isFinite(proteinPercent) || isNaN(proteinPercent)) proteinPercent = 0;
-            proteinBar.style.width = `${proteinPercent}%`;
-            const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
-            proteinStatus.innerHTML = proteinLeft > 0 ? `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span>` : `💪 โปรตีนถึงเป้าหมายแล้ว`;
+            if(proteinBar) proteinBar.style.width = `${proteinPercent}%`;
+            
+            if(proteinStatus) {
+                const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
+                proteinStatus.innerHTML = proteinLeft > 0 ? `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span>` : `💪 โปรตีนถึงเป้าหมายแล้ว`;
+            }
         }
 
         function updateWeekSummary(history) {
             const box = document.getElementById('weekSummary');
+            if(!box) return;
             const safeHistory = normalizeHistory(history);
             const today = new Date(getTodayDate());
             const dates = Array.from({ length: 7 }, (_, i) => {
@@ -571,7 +602,8 @@
 
         async function fetchTodayStravaCalories() {
             const statusLabel = document.getElementById('strava-status');
-            const targetDateStr = document.getElementById('selectedDate').value || getTodayDate();
+            const dateInput = document.getElementById('selectedDate');
+            const targetDateStr = dateInput ? dateInput.value : getTodayDate();
             if (statusLabel) statusLabel.innerText = `⏳ กำลังดึงกิจกรรมของวันที่ ${targetDateStr} จาก Strava...`;
 
             try {
@@ -595,7 +627,6 @@
 
                 if (Array.isArray(activities)) {
                     activities.forEach(activity => {
-                        // 🎯 ป้องกันค่าติดลบหรือแครช บังคับเอาเฉพาะค่าบวกที่เป็นตัวเลขจริง
                         let cal = Number(activity.calories || 0);
                         if (cal <= 0 && activity.kilojoules) {
                             cal = Number(activity.kilojoules) * 0.239;
