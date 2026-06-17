@@ -300,10 +300,7 @@
             const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
             if (!apiKey) throw new Error('ไม่พบ OpenRouter API Key');
             
-            // 🔄 เปลี่ยนมาเน้นใช้โมเดลที่เสถียรและเร็ว เหมาะกับการรีเทิร์น JSON ตรงๆ
             const models = ["google/gemini-2.5-flash-lite", "deepseek/deepseek-v3", "google/gemma-3-4b-it:free"];
-            
-            // ปรับ Prompt ให้สั้นกระชับที่สุดเพื่อลดการหลุดของ Token
             const prompt = `Nutrition estimate for: "${foodText}". Output exactly in this format: {"items":[{"name":"Oat","calories":190,"protein":7}],"total_calories":190,"total_protein":7}`;
             
             let lastError = null;
@@ -320,12 +317,11 @@
                         body: JSON.stringify({
                             model,
                             messages: [
-                                { role: 'system', content: 'You are a nutrition API. Respond only with a single, unbroken JSON object matching the requested template.' },
+                                { role: 'system', content: 'You are a nutrition API. Respond only with a single JSON object matching the requested template.' },
                                 { role: 'user', content: prompt }
                             ],
                             temperature: 0.1,
-                            max_tokens: 300, // จำกัดไว้สั้นๆ พอแคลอรีมันสั้น
-                            // 🎯 บังคับให้ OpenRouter คุมโมเดลส่งกลับมาเฉพาะ JSON Object ที่ถูกต้องเท่านั้น
+                            max_tokens: 300,
                             response_format: { type: "json_object" } 
                         })
                     });
@@ -336,14 +332,29 @@
 
                     console.log("Strict AI Response:", rawText);
 
-                    // ล้างสัญลักษณ์ส่วนเกินเผื่อหลุดมา
                     const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                     const parsed = JSON.parse(cleaned);
 
+                    // 🎯 [จุดแก้ไขสำคัญ] สกัดค่าอย่างชาญฉลาด ป้องกัน AI พิมพ์ชื่อฟิลด์เพี้ยน
+                    let itemsArray = parsed.items || [];
+                    
+                    // ค้นหาค่า Calories จากทุกชื่อที่เป็นไปได้
+                    let finalCal = parsed.total_calories || parsed.calories || parsed.total_kcal || 0;
+                    // ค้นหาค่า Protein จากทุกชื่อที่เป็นไปได้
+                    let finalProtein = parsed.total_protein || parsed.protein || parsed.protein_g || 0;
+
+                    // 💡 แผนสำรอง: ถ้าค่ารวมด้านนอกยังเป็น 0 แต่ในลิสต์ย่อย items มีการใส่ค่ามา ให้ดึงค่าจากไอเทมตัวแรกมาแทนเลย
+                    if (Number(finalCal) === 0 && itemsArray.length > 0) {
+                        finalCal = itemsArray[0].calories || itemsArray[0].kcal || 0;
+                    }
+                    if (Number(finalProtein) === 0 && itemsArray.length > 0) {
+                        finalProtein = itemsArray[0].protein || itemsArray[0].protein_g || 0;
+                    }
+
                     return { 
-                        items: parsed.items || [], 
-                        total_calories: Number(parsed.total_calories || 0), 
-                        total_protein: Number(parsed.total_protein || 0), 
+                        items: itemsArray, 
+                        total_calories: Number(finalCal), 
+                        total_protein: Number(finalProtein), 
                         _model: model 
                     };
                 } catch (err) {
