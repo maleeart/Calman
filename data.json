@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781688256785,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Almonds",
+        "calories": 70,
+        "protein": 2.5
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:24",
+    "menu": "อัลมอน 10 เม็ด",
+    "calories": 700,
+    "protein": 25
+  },
+  {
     "id": 1781688240988,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
