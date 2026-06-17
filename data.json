@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781688227923,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Banana",
+        "calories": 53,
+        "protein": 0.6
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:23",
+    "menu": "กล้วยครึ่งลูก",
+    "calories": 53,
+    "protein": 0.6
+  },
+  {
     "id": 1781688214853,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
