@@ -1,5 +1,21 @@
 [
   {
+    "id": 1781688214853,
+    "model": "google/gemini-2.5-flash-lite",
+    "aiItems": [
+      {
+        "name": "Greek yogurt",
+        "calories": 190,
+        "protein": 7
+      }
+    ],
+    "date": "2026-06-17",
+    "time": "16:23",
+    "menu": "กรีกโยเกิร์ต ในเซเว่น 1 ถ้วย",
+    "calories": 190,
+    "protein": 7
+  },
+  {
     "id": 1781688189183,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
