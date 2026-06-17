@@ -545,7 +545,6 @@
             if (statusLabel) statusLabel.innerText = '⏳ กำลังอัปเดตสิทธิ์และดึงกิจกรรมจาก Strava...';
 
             try {
-                // 🔄 ยิงขอ Access Token ตัวล่าสุดผ่านระบบ Auto-Refresh ใน config.js
                 const accessToken = await getValidStravaToken();
                 
                 if (!accessToken) {
@@ -576,11 +575,13 @@
 
                 const finalCalories = Math.round(totalActiveCalories);
                 
-                // คำนวณยอดรวม TDEE ใหม่รายวัน
+                // 🔄 คำนวณยอดรวม TDEE ใหม่รายวัน (TDEE ฐาน + แคลอรีออกกำลังกาย)
                 globalTDEE = baseTDEE + finalCalories;
+                
+                // 🎯 บังคับเขียนทับหน้าบ้าน: นำค่า TDEE ใหม่ไปอัปเดตแทนเป้าหมายเดิมในกล่อง UI ด้านบนทันที
                 document.getElementById('tdeeValue').innerText = globalTDEE;
                 
-                // สั่งประมวลผลวาดหน้าจอซ้ำเพื่อปรับแถบ ProgressBar
+                // สั่งประมวลผลวาดหน้าจอซ้ำเพื่อปรับแถบ ProgressBar และการคำนวณส่วนต่างด้านล่างตามเป้าหมายใหม่
                 displayHistory(globalHistory);
 
                 if (statusLabel) {
