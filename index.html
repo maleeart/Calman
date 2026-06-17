@@ -67,8 +67,8 @@
 
         <div class="mb-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
             <label class="block text-xs font-semibold text-gray-700 mb-1">📅 วันที่ต้องการดูข้อมูล</label>
-            <!-- 🎯 เพิ่ม onchange="calculateTDEE(); displayHistory(...)" เพื่อให้เปลี่ยนวันแล้ว TDEE คำนวณใหม่ตามวันนั้นๆ -->
-            <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="calculateTDEE(); displayHistory(globalHistory)">
+            <!-- 🎯 ปรับปรุงจุดบกพร่อง: เช็กก่อนวาดหน้าจอเสมอว่ามีข้อมูลหรือยัง ป้องกันค่าว่างวิ่งทับ -->
+            <input type="date" id="selectedDate" class="w-full p-2 border rounded-lg bg-white text-sm" onchange="handleDateChange()">
             <p class="text-[10px] text-gray-400 mt-1">ระบบจะรวมแคลอรีเฉพาะวันที่เลือก ไม่รวมข้ามวัน</p>
         </div>
 
@@ -134,10 +134,8 @@
     <script>
         let globalTDEE = 2300;
         let baseTDEE = 2300; 
-        let globalHistory = [];
+        let globalHistory = null; // 🎯 เปลี่ยนเป็น null เพื่อตั้งด่านเช็กว่าโหลดจาก GitHub แล้วหรือยัง
         let latestFileSha = null;
-        
-        // 🎯เปลี่ยนมาใช้แบบโครงสร้างวัตถุ (Object) เพื่อเก็บค่าแยกตามรายวัน เช่น {"2026-06-17": 450}
         let stravaDailyValues = {}; 
 
         const user = "maleeart"; 
@@ -223,11 +221,19 @@
             fetchDataFromGitHub();
         };
 
+        // 🎯 ด่านความปลอดภัย: สลับวันในปฏิทินแล้วจะไม่ล้างประวัติที่โหลดมาแล้ว
+        function handleDateChange() {
+            calculateTDEE();
+            if (globalHistory !== null) {
+                displayHistory(globalHistory);
+            }
+        }
+
         function calculateTDEE() {
-            const w = Number(document.getElementById('userWeight').value);
-            const h = Number(document.getElementById('userHeight').value);
-            const a = Number(document.getElementById('userAge').value);
-            const act = Number(document.getElementById('userActivity').value);
+            const w = Number(document.getElementById('userWeight').value) || 60;
+            const h = Number(document.getElementById('userHeight').value) || 160;
+            const a = Number(document.getElementById('userAge').value) || 30;
+            const act = Number(document.getElementById('userActivity').value) || 1.2;
             const proteinGoal = Number(document.getElementById('proteinGoal').value || 0);
 
             localStorage.setItem('userWeight', w);
@@ -239,9 +245,8 @@
             const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
             baseTDEE = Math.round(bmr * act);
             
-            // 🎯 จุดปรับปรุงสำคัญ: ไปดึงค่า Strava ที่ผูกไว้เฉพาะกับวันที่เลือกในช่อง Input ปฏิทินมาคำนวณ
             const activeDate = document.getElementById('selectedDate').value || getTodayDate();
-            const currentDayStrava = stravaDailyValues[activeDate] || 0;
+            const currentDayStrava = Number(stravaDailyValues[activeDate] || 0);
 
             globalTDEE = baseTDEE + currentDayStrava; 
 
@@ -297,6 +302,7 @@
             } catch (e) {
                 console.error(e);
                 showStatus('❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message, 'error');
+                globalHistory = []; // ล็อกค่ากันค้าง
             }
         }
 
@@ -311,21 +317,14 @@
                 try {
                     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`,
-                            'HTTP-Referer': 'https://maleeart.github.io/Calman/',
-                            'X-Title': 'Calman'
-                        },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'HTTP-Referer': 'https://maleeart.github.io/Calman/', 'X-Title': 'Calman' },
                         body: JSON.stringify({
                             model,
                             messages: [
                                 { role: 'system', content: 'You are a nutrition API. Respond only with a single JSON object matching the requested template.' },
                                 { role: 'user', content: prompt }
                             ],
-                            temperature: 0.1,
-                            max_tokens: 300,
-                            response_format: { type: "json_object" } 
+                            temperature: 0.1, max_tokens: 300, response_format: { type: "json_object" } 
                         })
                     });
                     
@@ -382,6 +381,7 @@
             const foodText = document.getElementById('foodInput').value.trim();
             const btn = document.getElementById('submitBtn');
             if (!foodText) { alert('กรุณากรอกชื่ออาหารก่อนครับ'); return; }
+            if (globalHistory === null) { alert('ฐานข้อมูลยังโหลดไม่เสร็จ กรุณารอสักครู่ครับ'); return; }
             btn.disabled = true;
             btn.innerText = '⏳ ระบบกำลังวิเคราะห์…';
             hideStatus();
@@ -466,12 +466,17 @@
         function updateDashboardValues(totalCal, totalProtein) {
             document.getElementById('dayCal').innerText = `${totalCal} kcal`;
             document.getElementById('dayProtein').innerText = `${totalProtein} กรัม`;
-            let percent = Math.min((totalCal / globalTDEE) * 100, 100);
-            if (!isFinite(percent)) percent = 0;
+            
+            // 🎯 ป้องกันค่า TDEE เป็น 0 จนแถบความคืบหน้าคำนวณเออเร่อเป็น Infinity
+            let currentTargetTdee = globalTDEE > 0 ? globalTDEE : 2300;
+            let percent = Math.min((totalCal / currentTargetTdee) * 100, 100);
+            if (!isFinite(percent) || isNaN(percent)) percent = 0;
+            
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${percent}%`;
             const statusBox = document.getElementById('tdeeStatus');
-            const diff = globalTDEE - totalCal;
+            const diff = currentTargetTdee - totalCal;
+            
             if (diff > 500) {
                 progressBar.className = 'bg-blue-500 h-full transition-all duration-500';
                 statusBox.innerHTML = `🔵 วันนี้กินต่ำกว่า TDEE ถึง <span class="font-bold text-blue-400">${diff} kcal</span>`;
@@ -489,7 +494,7 @@
             const proteinBar = document.getElementById('proteinBar');
             const proteinStatus = document.getElementById('proteinStatus');
             let proteinPercent = proteinGoal ? Math.min((totalProtein / proteinGoal) * 100, 100) : 0;
-            if (!isFinite(proteinPercent)) proteinPercent = 0;
+            if (!isFinite(proteinPercent) || isNaN(proteinPercent)) proteinPercent = 0;
             proteinBar.style.width = `${proteinPercent}%`;
             const proteinLeft = Math.max(proteinGoal - totalProtein, 0);
             proteinStatus.innerHTML = proteinLeft > 0 ? `💪 โปรตีนยังขาดอีก <span class="font-bold text-green-300">${proteinLeft} g</span>` : `💪 โปรตีนถึงเป้าหมายแล้ว`;
@@ -504,6 +509,8 @@
                 d.setDate(today.getDate() - (6 - i));
                 return d.toISOString().slice(0, 10);
             });
+            
+            let currentTargetTdee = globalTDEE > 0 ? globalTDEE : 2300;
             const totals = dates.map(date => {
                 const items = safeHistory.filter(item => item.date === date);
                 return { date, calories: items.reduce((s, item) => s + Number(item.calories || 0), 0), protein: items.reduce((s, item) => s + Number(item.protein || 0), 0) };
@@ -511,13 +518,13 @@
             const daysWithData = totals.filter(d => d.calories > 0 || d.protein > 0);
             const avgCal = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.calories, 0) / daysWithData.length) : 0;
             const avgProtein = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein, 0) / daysWithData.length) : 0;
-            const overTdeeDays = totals.filter(d => d.calories > globalTDEE).length;
-            const underTdeeDays = totals.filter(d => d.calories > 0 && d.calories <= globalTDEE).length;
+            const overTdeeDays = totals.filter(d => d.calories > currentTargetTdee).length;
+            const underTdeeDays = totals.filter(d => d.calories > 0 && d.calories <= currentTargetTdee).length;
 
             const dayRows = totals.map(d => {
                 const label = new Date(d.date).toLocaleDateString('th-TH', { weekday: 'short', day: '2-digit', month: 'short' });
                 const hasData = d.calories > 0 || d.protein > 0;
-                const status = !hasData ? '<span class="text-gray-400">ไม่มีข้อมูล</span>' : d.calories > globalTDEE ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>' : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
+                const status = !hasData ? '<span class="text-gray-400">ไม่มีข้อมูล</span>' : d.calories > currentTargetTdee ? '<span class="text-orange-600 font-semibold">เกิน TDEE</span>' : '<span class="text-green-700 font-semibold">ไม่เกิน TDEE</span>';
                 return `
                     <div class="flex items-center justify-between gap-2 py-1.5 border-b border-indigo-100 last:border-b-0">
                         <div class="w-[34%] font-medium text-indigo-950">${label}</div>
@@ -543,9 +550,6 @@
                 </div>`;
         }
 
-        // ==========================================================================
-        // 🍊 STRAVA DYNAMIC REFRESH TOKEN LOGIC (ออโต้ 100% ไร้รอยต่อ)
-        // ==========================================================================
         async function getValidStravaToken() {
             if (typeof CONFIG === 'undefined') return null;
             const clientId = CONFIG.getStravaId();
@@ -567,7 +571,6 @@
 
         async function fetchTodayStravaCalories() {
             const statusLabel = document.getElementById('strava-status');
-            // 🎯 สกัดเอาวันที่กำลังเลือกทำงานอยู่ ณ ขณะนั้น (ไม่ล็อกตายตัวเฉพาะวันนี้)
             const targetDateStr = document.getElementById('selectedDate').value || getTodayDate();
             if (statusLabel) statusLabel.innerText = `⏳ กำลังดึงกิจกรรมของวันที่ ${targetDateStr} จาก Strava...`;
 
@@ -578,11 +581,10 @@
                     return;
                 }
 
-                // 🎯 ปรับการดึงเวลาช่วง Timestamp ให้คำนวณตาม "วันที่เลือกบนหน้าจอแอป" ย้อนหลังได้จริง
                 const targetDate = new Date(targetDateStr);
                 targetDate.setHours(0, 0, 0, 0);
                 const afterTimestamp = Math.floor(targetDate.getTime() / 1000); 
-                const beforeTimestamp = afterTimestamp + 86400; // บวกล่วงหน้าไป 1 วันเพื่อตีกรอบ 24 ชั่วโมง
+                const beforeTimestamp = afterTimestamp + 86400;
 
                 const response = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${afterTimestamp}&before=${beforeTimestamp}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -593,25 +595,27 @@
 
                 if (Array.isArray(activities)) {
                     activities.forEach(activity => {
-                        if (activity.calories) {
-                            totalActiveCalories += activity.calories;
-                        } else if (activity.kilojoules) {
-                            totalActiveCalories += activity.kilojoules * 0.239;
+                        // 🎯 ป้องกันค่าติดลบหรือแครช บังคับเอาเฉพาะค่าบวกที่เป็นตัวเลขจริง
+                        let cal = Number(activity.calories || 0);
+                        if (cal <= 0 && activity.kilojoules) {
+                            cal = Number(activity.kilojoules) * 0.239;
+                        }
+                        if (!isNaN(cal) && cal > 0) {
+                            totalActiveCalories += cal;
                         }
                     });
                 }
 
                 const finalCalories = Math.round(totalActiveCalories);
-                
-                // 🎯 บันทึกลงออบเจกต์ระบุค่าแยกตาม "คีย์วันที่เลือก"
                 stravaDailyValues[targetDateStr] = finalCalories;
                 
-                // รีรันระบบคำนวณหน้าบ้าน
                 calculateTDEE();
-                displayHistory(globalHistory);
+                if (globalHistory !== null) {
+                    displayHistory(globalHistory);
+                }
 
                 if (statusLabel) {
-                    statusLabel.innerText = finalCalories > 0 ? `🔥 ซิงค์สำเร็จ! ของวันที่ ${targetDateStr} เพิ่มกิจกรรม +${finalCalories} kcal` : `✅ ซิงค์สำเร็จ: วันที่ ${targetDateStr} ใช้ TDEE ฐานปกติ`;
+                    statusLabel.innerText = finalCalories > 0 ? `🔥 ซิงค์สำเร็จ! ของวันที่ ${targetDateStr} เพิ่มกิจกรรม +${finalCalories} kcal` : `✅ ซิงค์สำเร็จ: วันที่ ${targetDateStr} ไม่พบกิจกรรมออกกำลังกาย (ใช้ TDEE ฐานปกติ)`;
                 }
             } catch (error) {
                 console.error(error);
