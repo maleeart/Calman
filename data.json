@@ -1,22 +1,5 @@
 [
   {
-    "id": 1781688300771,
-    "model": "google/gemini-2.5-flash-lite",
-    "aiItems": [
-      {
-        "name": "Almonds",
-        "quantity": "10",
-        "calories": 70,
-        "unit": "pieces"
-      }
-    ],
-    "date": "2026-06-17",
-    "time": "16:25",
-    "menu": "อัลมอนด์ 10 เม็ด 70 kcal",
-    "calories": 70,
-    "protein": 0
-  },
-  {
     "id": 1781688240988,
     "model": "google/gemini-2.5-flash-lite",
     "aiItems": [
