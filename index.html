@@ -300,7 +300,10 @@
             const apiKey = typeof CONFIG !== 'undefined' ? CONFIG.getOR() : '';
             if (!apiKey) throw new Error('ไม่พบ OpenRouter API Key');
             const models = ["deepseek/deepseek-v3", "google/gemini-2.5-flash-lite", "google/gemma-3-4b-it:free"];
-            const prompt = `คุณเป็นนักโภชนาการ ตอบกลับเป็น JSON รูปแบบตามที่ระบุเท่านั้นเกี่ยวกับอาหาร: "${foodText}"...`;
+            
+            // 🎯 ปรับ Prompt ให้กำชับ AI ส่งค่ากลับมาให้ตรงและกระชับขึ้น
+            const prompt = `คุณเป็นนักโภชนาการ ประเมินสารอาหารของ: "${foodText}" ตอบเป็น JSON รูปแบบนี้เท่านั้น ห้ามอธิบายคำนำหรือตามหลังเด็ดขาด: {"items":[{"name":"ชื่ออาหาร","calories":0,"protein":0}],"total_calories":0,"total_protein":0}`;
+            
             let lastError = null;
             for (const model of models) {
                 try {
@@ -315,7 +318,7 @@
                         body: JSON.stringify({
                             model,
                             messages: [
-                                { role: 'system', content: 'Reply only valid JSON.' },
+                                { role: 'system', content: 'You are a strict JSON-only API responses bot. Do not speak normal text. Do not include markdown blocks.' },
                                 { role: 'user', content: prompt }
                             ],
                             temperature: 0.1,
@@ -323,12 +326,28 @@
                         })
                     });
                     const data = await res.json();
-                    const rawText = data?.choices?.[0]?.message?.content;
+                    let rawText = data?.choices?.[0]?.message?.content;
                     if (!rawText) continue;
+
+                    console.log("Raw AI Response:", rawText);
+
+                    // 🛠️ คัดแยกเฉพาะข้อความที่อยู่ในเครื่องหมายปีกกา { ... } ป้องกัน AI ตอบแถมข้อความอื่น
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        rawText = jsonMatch[0];
+                    }
+
                     const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                     const parsed = JSON.parse(cleaned);
-                    return { items: parsed.items || [], total_calories: Number(parsed.total_calories || 0), total_protein: Number(parsed.total_protein || 0), _model: model };
+
+                    return { 
+                        items: parsed.items || [], 
+                        total_calories: Number(parsed.total_calories || 0), 
+                        total_protein: Number(parsed.total_protein || 0), 
+                        _model: model 
+                    };
                 } catch (err) {
+                    console.warn(`โมเดล ${model} มีปัญหา กำลังลองตัวถัดไป...`, err);
                     lastError = err;
                     continue;
                 }
